@@ -54,6 +54,7 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include "dvips.h"
 #include "protos.h"
 static const int ENCODING_CHAR_COUNT = 256 ;
 char **parseencoding(FILE *f) {
@@ -72,7 +73,7 @@ char **parseencoding(FILE *f) {
          char *charname = 0 ;
          int charnum = 0 ;
          do { // do/while(0); let us break to an error routine
-            if (p != ' ' && p != '\t') {
+            if (*p != ' ' && *p != '\t') {
                err = "Missing whitespace after dup line" ;
                break ;
             }
@@ -97,7 +98,7 @@ char **parseencoding(FILE *f) {
                break ;
             }
             charnum = dig ;
-            if (p != ' ' && p != '\t') {
+            if (*p != ' ' && *p != '\t') {
                err = "Missing whitespace after dup line" ;
                break ;
             }
@@ -116,7 +117,7 @@ char **parseencoding(FILE *f) {
                err = "Empty glyph name" ;
                break ;
             }
-            if (p != ' ' && p != '\t') {
+            if (*p != ' ' && *p != '\t') {
                err = "Missing whitespace after glyph name" ;
                break ;
             }
@@ -128,7 +129,7 @@ char **parseencoding(FILE *f) {
                break ;
             }
             p += 3 ;
-            while (p == ' ' || p == '\t')
+            while (*p == ' ' || *p == '\t')
                p++ ;
             if (*p != 0 && *p != 10 && *p != 13 && *p != '%') {
                err = "Extra stuff after put" ;
@@ -140,11 +141,34 @@ char **parseencoding(FILE *f) {
             strcat(encbuf, err) ;
             error(encbuf) ;
          }
-         e[charnum] = strdup(charname) ;
+         if (strcmp(charname, "/.notdef") == 0)
+            e[charnum] = 0 ;
+         else
+            e[charnum] = strdup(charname) ;
          if (e[charnum] == 0)
             error("! ran out of memory reading bitmap encoding") ;
       }
    }
    fclose(f) ;
    return e ;
+}
+/*
+ *   Standalone test code:
+ */
+#undef fopen
+void error(const char *s) {
+   fprintf(stderr, "Failed: %s\n", s) ;
+   exit(0) ;
+}
+char *mymalloc(int sz) {
+   return (char *)malloc(sz) ;
+}
+int main(int argc, char *argv[]) {
+   FILE *f = fopen(argv[1], "r") ;
+   if (f == 0)
+      error("! can't open file") ;
+   char **r = parseencoding(f) ;
+   for (int i=0; i<256; i++) {
+      printf("%d: %s\n", i, (r[i] ? r[i] : "/.notdef")) ;
+   }
 }
