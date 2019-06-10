@@ -56,9 +56,9 @@
 #include <string.h>
 #include "dvips.h"
 #include "protos.h"
-static const int ENCODING_CHAR_COUNT = 256 ;
+#define ENCODING_CHAR_COUNT 256
+#define MAX_LINE_LENGTH 256
 char **parseencoding(FILE *f) {
-   static const int MAX_LINE_LENGTH = 256 ; // reasonable
    char encbuf[MAX_LINE_LENGTH+1] ;
    char **e = (char **)mymalloc(sizeof(char *)*ENCODING_CHAR_COUNT) ;
    for (int i=0; i<ENCODING_CHAR_COUNT; i++)
@@ -143,12 +143,16 @@ char **parseencoding(FILE *f) {
          }
          if (strcmp(charname, "/.notdef") == 0)
             e[charnum] = 0 ;
-         else
+         else {
+            characters_loaded++ ;
             e[charnum] = strdup(charname) ;
+         }
          if (e[charnum] == 0)
             error("! ran out of memory reading bitmap encoding") ;
       }
    }
+   if (characters_loaded == 0)
+      error("! did not find any valid character definitions in encoding file") ;
    fclose(f) ;
    return e ;
 }
