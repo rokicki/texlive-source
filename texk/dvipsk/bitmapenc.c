@@ -157,6 +157,32 @@ char **parseencoding(FILE *f) {
    return e ;
 }
 /*
+ *   Given a font name, find an encoding file.
+ */
+#define MAX_NAME_SIZE 256
+FILE *bitmap_enc_search(const char *fontname) {
+   char namebuf[MAX_NAME_SIZE+1] ;
+   if (fontname == 0 || strlen(fontname) > 128)
+      error("! excessively long font name") ;
+   sprintf(namebuf, "dvips-%s.enc") ;
+   return search(encpath, namebuf, FOPEN_RBIN_MODE) ;
+}
+/*
+ *   Given a font name, find an encoding.  Assumes caching will be done
+ *   at the fontdef level.
+ *
+ *   We warn if we have to use a built-in encoding, and set this value to 1.
+ *   We warn again if we cannot find a built-in encoding and have to
+ *   default to StandardEncoding, and set this value to 2.
+ */
+static int warned_about_missing_encoding = 0 ;
+char **bitmap_enc_load(const char *fontname) {
+   FILE *f = bitmap_enc_search(fontname) ;
+   if (f != 0)
+      return parseencoding(f) ;
+   
+}
+/*
  *   Standalone test code:
  */
 #undef fopen
