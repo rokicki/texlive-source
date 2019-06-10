@@ -54,8 +54,15 @@
  */
 #include <stdio.h>
 #include <string.h>
+#ifndef STANDALONE
+#include <kpathsea/config.h>
+#endif
 #include "dvips.h"
 #include "protos.h"
+#ifdef STANDALONE
+#undef fopen
+#undef fclose
+#endif
 #define ENCODING_CHAR_COUNT 256
 #define MAX_LINE_LENGTH 256
 char **parseencoding(FILE *f) {
@@ -153,7 +160,6 @@ char **parseencoding(FILE *f) {
    }
    if (characters_loaded == 0)
       error("! did not find any valid character definitions in encoding file") ;
-   fclose(f) ;
    return e ;
 }
 /*
@@ -164,8 +170,12 @@ FILE *bitmap_enc_search(const char *fontname) {
    char namebuf[MAX_NAME_SIZE+1] ;
    if (fontname == 0 || strlen(fontname) > 128)
       error("! excessively long font name") ;
-   sprintf(namebuf, "dvips-%s.enc") ;
-   return search(encpath, namebuf, FOPEN_RBIN_MODE) ;
+   sprintf(namebuf, "dvips-%s.enc", fontname) ;
+#ifdef STANDALONE
+   return fopen(namebuf, FOPEN_RBIN_MODE) ;
+#else
+   return search(kpse_enc_format, namebuf, FOPEN_RBIN_MODE) ;
+#endif
 }
 /*
  *   Given a font name, find an encoding.  Assumes caching will be done
@@ -178,14 +188,17 @@ FILE *bitmap_enc_search(const char *fontname) {
 static int warned_about_missing_encoding = 0 ;
 char **bitmap_enc_load(const char *fontname) {
    FILE *f = bitmap_enc_search(fontname) ;
-   if (f != 0)
-      return parseencoding(f) ;
-   
+   if (f != 0) {
+      char **r = parseencoding(f) ;
+      fclose(f) ;
+      return r ;
+   }
+   return 0 ;
 }
+#ifdef STANDALONE
 /*
  *   Standalone test code:
  */
-#undef fopen
 void error(const char *s) {
    fprintf(stderr, "Failed: %s\n", s) ;
    exit(0) ;
@@ -202,3 +215,4 @@ int main(int argc, char *argv[]) {
       printf("%d: %s\n", i, (r[i] ? r[i] : "/.notdef")) ;
    }
 }
+#endif
