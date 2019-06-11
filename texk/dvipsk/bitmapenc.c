@@ -60,6 +60,7 @@
 #include "dvips.h"
 #include "protos.h"
 #include "staticbmenc.h"
+#include "bitmapenc.h"
 #ifdef STANDALONE
 #undef fopen
 #undef fclose
