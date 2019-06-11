@@ -295,18 +295,27 @@ download(charusetype *p, int psfont)
    newline();
    fprintf(bitfile, "%%DVIPSBitmapFont: %s %s %g %d\n", name+1, curfnt->name,
                      fontscale, numcc);
+   double scale = fontscale * DPI / 72.0 ;
    if (encodetype3) {
       cmdout("IEn") ;
       cmdout("FBB") ;
       cmdout("FMat") ;
       psnameout("/FMat") ;
       specialout('[') ;
-      numout(1) ;
+      floatout(1.0/scale) ;
       numout(0) ;
       numout(0) ;
-      numout(1) ;
+      floatout(-1.0/scale) ;
       numout(0) ;
       numout(0) ;
+      specialout(']') ;
+      cmdout("N") ;
+      psnameout("/FBB") ;
+      specialout('[') ;
+      numout(curfnt->llx) ;
+      numout(curfnt->lly) ;
+      numout(curfnt->urx) ;
+      numout(curfnt->ury) ;
       specialout(']') ;
       cmdout("N") ;
       int seq = getencoding_seq(curfnt->name) ;
@@ -355,6 +364,14 @@ download(charusetype *p, int psfont)
    cmdout("E");
    newline() ;
    if (encodetype3) {
+      psnameout(name) ;
+      cmdout("load") ;
+      numout(0) ;
+      cmdout(name+1) ;
+      cmdout("currentfont") ;
+      floatout(scale) ;
+      cmdout("scalefont") ;
+      cmdout("put") ;
       psnameout("/FMat") ;
       cmdout("X") ;
       psnameout("/FBB") ;

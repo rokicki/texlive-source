@@ -339,7 +339,8 @@ static int warned_about_missing_encoding = 0 ;
  *   Print a warning message.
  */
 void bmenc_warn(const char *fontname, const char *msg) {
-   fprintf(stderr, "dvips: Static bitmap font encoding for font %s: %s.\n",
+   fprintf(stderr,
+       "dvips: Static bitmap font encoding for font %s (and others?): %s.\n",
                    fontname, msg) ;
 }
 /*
