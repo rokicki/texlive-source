@@ -59,6 +59,7 @@
 #endif
 #include "dvips.h"
 #include "protos.h"
+#include "staticbmenc.h"
 #ifdef STANDALONE
 #undef fopen
 #undef fclose
