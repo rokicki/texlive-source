@@ -289,6 +289,30 @@ struct bmenc *bitmap_static_find(const char *fontname) {
  *   Download the encoding and set the sequence number.
  */
 void downloadenc(struct bmenc *enc) {
+   char encname[10] ;
+   sprintf(encname, "/EN%d", curbmseq) ;
+   cmdout(encname) ;
+   specialout('[') ;
+   for (int i=0; i<256; i++) {
+      int notdef = 0 ;
+      while (i+notdef<256 && enc->enc[i+notdef]==0)
+         notdef++ ;
+      if (notdef > 2) {
+         numout(notdef);
+         specialout('{') ;
+         cmdout("/.notdef") ;
+         specialout('}') ;
+         cmdout("repeat") ;
+         i += notdef - 1 ;
+      } else if (notdef) {
+         cmdout("/.notdef") ;
+      } else {
+         cmdout(enc->enc[i]) ;
+      }
+   }
+   specialout(']') ;
+   cmdout("N") ;
+   newline() ;
    enc->downloaded_seq = curbmseq++ ;
 }
 /*
@@ -364,6 +388,45 @@ void error(const char *s) {
 }
 char *mymalloc(int sz) {
    return (char *)malloc(sz) ;
+}
+int pos = 0 ;
+int idok = 1 ;
+const int MAXLINE = 75 ;
+void newline() {
+   printf("\n") ;
+   idok = 1 ;
+   pos = 0 ;
+}
+void numout(int num) {
+   int len = 1 ;
+   int t = num / 10 ;
+   while (t>0) {
+      len++ ;
+      t /= 10 ;
+   }
+   if (pos + len >= MAXLINE)
+      newline() ;
+   if (!idok)
+      specialout(' ') ;
+   printf("%d", num) ;
+   pos += len ;
+   idok = 0 ;
+}
+void cmdout(const char *s) {
+   if (pos + strlen(s) >= MAXLINE)
+      newline() ;
+   if (*s != '/' && !idok)
+      specialout(' ') ;
+   printf("%s", s) ;
+   pos += strlen(s) ;
+   idok = 0 ;
+}
+void specialout(char c) {
+   if (pos + 1 >= MAXLINE)
+      newline() ;
+   printf("%c", c) ;
+   pos++ ;
+   idok = 1 ;
 }
 int main(int argc, char *argv[]) {
    initbmenc() ;
