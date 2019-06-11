@@ -311,11 +311,15 @@ download(charusetype *p, int psfont)
       specialout(']') ;
       cmdout("N") ;
       psnameout("/FBB") ;
+      // we add a bit of slop here, because this is only used for
+      // highlighting, and in theory if the bounding box is too
+      // tight, on some RIPs, characters could be clipped.
+      int slop = 1 ;
       specialout('[') ;
-      numout(curfnt->llx) ;
-      numout(curfnt->lly) ;
-      numout(curfnt->urx) ;
-      numout(curfnt->ury) ;
+      numout(curfnt->llx-slop) ;
+      numout(curfnt->lly-slop) ;
+      numout(curfnt->urx+slop) ;
+      numout(curfnt->ury+slop) ;
       specialout(']') ;
       cmdout("N") ;
       int seq = getencoding_seq(curfnt->name) ;
