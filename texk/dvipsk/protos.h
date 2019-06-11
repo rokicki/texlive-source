@@ -14,6 +14,10 @@ struct tcd;
 /* prototypes for functions from bbox.c */
 extern void findbb(int bop);
 
+/* prototypes for functions from bitmapenc.c */
+extern void bmenc_startsection(void) ;
+extern int getencoding_seq(const char *name) ;
+
 /* prototypes for functions from color.c */
 extern void initcolor(void);
 extern void background(char *bkgrnd);
@@ -38,6 +42,8 @@ extern void dospecial(int numbytes);
 extern float *bbdospecial(int nbytes);
 
 /* prototypes for functions from download.c */
+quarterword *unpack_bb(chardesctype *c, integer *cwidth, integer *cheight,
+                                        integer *xoff, integer *yoff) ;
 extern void download(charusetype *p, int psfont);
 extern void makepsname(char *s, int n);
 extern void lfontout(int n);
@@ -139,6 +145,7 @@ extern int T1Char(int c);
 #endif
 extern void scout(unsigned char c);
 extern void cmdout(const char *s);
+extern void psnameout(const char *s);
 extern void floatout(float n);
 extern void doubleout(double n);
 extern void numout(int n);
@@ -228,11 +235,10 @@ extern Boolean virtualfont(fontdesctype *curfnt);
 extern char **load_enc_file(char *);
 extern boolean t1_subset_2(char *, unsigned char *, char *);
 
-/* prototypes for functions from bitmapenc.c */
-extern void bmenc_startsection(void) ;
-
-
 /*********** global variables ***********/
+
+/* global variables from bitmapenc.c */
+extern int encodetype3 ;
 
 /* global variables from dopage.c */
 extern integer dir;

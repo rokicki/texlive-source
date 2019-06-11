@@ -876,6 +876,12 @@ cmdout(const char *s)
    lastspecial = 0;
 }
 
+void psnameout(const char *s) {
+   // we lead with a special, so we don't need the space.
+   lastspecial = 1 ;
+   cmdout(s) ;
+}
+
 
 static void
 chrcmd(char c)

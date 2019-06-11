@@ -22,45 +22,51 @@ static unsigned char dummyend[8] = { 252 };
  *   We have a routine that downloads an individual character.
  */
 static int lastccout;
+quarterword *unpack_bb(chardesctype *c, integer *cwidth, integer *cheight,
+                                        integer *xoff, integer *yoff) {
+   quarterword *p = c->packptr;
+   halfword cmd = *p++;
+   if (cmd & 4) {
+      if ((cmd & 7) == 7) {
+         *cwidth = getlong(p);
+         *cheight = getlong(p + 4);
+         *xoff = getlong(p + 8);
+         *yoff = getlong(p + 12);
+         p += 16;
+      } else {
+         *cwidth = p[0] * 256 + p[1];
+         *cheight = p[2] * 256 + p[3];
+         *xoff = p[4] * 256 + p[5];
+         *yoff = p[6] * 256 + p[7];
+         p += 8;
+      }
+   } else {
+      *cwidth = *p++;
+      *cheight = *p++;
+      *xoff = *p++;
+      *yoff = *p++;
+      if (*xoff > 127)
+         *xoff -= 256;
+      if (*yoff > 127)
+         *yoff -= 256;
+   }
+   return p ;
+}
 static void
 downchar(chardesctype *c, shalfword cc)
 {
    register long i, j;
-   register halfword cheight, cwidth;
+   integer cheight, cwidth;
    register long k;
    register quarterword *p;
    register halfword cmd;
-   register shalfword xoff, yoff;
+   integer xoff, yoff;
    halfword wwidth = 0;
    register long len;
    int smallchar;
 
-   p = c->packptr;
-   cmd = *p++;
-   if (cmd & 4) {
-      if ((cmd & 7) == 7) {
-         cwidth = getlong(p);
-         cheight = getlong(p + 4);
-         xoff = getlong(p + 8);
-         yoff = getlong(p + 12);
-         p += 16;
-      } else {
-         cwidth = p[0] * 256 + p[1];
-         cheight = p[2] * 256 + p[3];
-         xoff = p[4] * 256 + p[5]; /* N.B.: xoff, yoff are signed halfwords */
-         yoff = p[6] * 256 + p[7];
-         p += 8;
-      }
-   } else {
-      cwidth = *p++;
-      cheight = *p++;
-      xoff = *p++;
-      yoff = *p++;
-      if (xoff > 127)
-         xoff -= 256;
-      if (yoff > 127)
-         yoff -= 256;
-   }
+   cmd = *(c->packptr) ;
+   p = unpack_bb(c, &cwidth, &cheight, &xoff, &yoff) ;
    if (c->flags & BIGCHAR)
       smallchar = 0;
    else
@@ -289,6 +295,29 @@ download(charusetype *p, int psfont)
    newline();
    fprintf(bitfile, "%%DVIPSBitmapFont: %s %s %g %d\n", name+1, curfnt->name,
                      fontscale, numcc);
+   if (encodetype3) {
+      cmdout("IEn") ;
+      cmdout("FBB") ;
+      cmdout("FMat") ;
+      psnameout("/FMat") ;
+      specialout('[') ;
+      numout(1) ;
+      numout(0) ;
+      numout(0) ;
+      numout(1) ;
+      numout(0) ;
+      numout(0) ;
+      specialout(']') ;
+      cmdout("N") ;
+      int seq = getencoding_seq(curfnt->name) ;
+      if (seq >= 0) {
+         char cmdbuf[10] ;
+         sprintf(cmdbuf, "EN%d", seq) ;
+         psnameout("/IEn") ;
+         cmdout(cmdbuf) ;
+         cmdout("N") ;
+      }
+   }
    cmdout(name);
    numout((integer)numcc);
    numout((integer)maxcc + 1);
@@ -324,7 +353,16 @@ download(charusetype *p, int psfont)
       }
    }
    cmdout("E");
-   newline();
+   newline() ;
+   if (encodetype3) {
+      psnameout("/FMat") ;
+      cmdout("X") ;
+      psnameout("/FBB") ;
+      cmdout("X") ;
+      psnameout("/IEn") ;
+      cmdout("X") ;
+      newline();
+   }
    fprintf(bitfile, "%%EndDVIPSBitmapFont\n");
 }
 

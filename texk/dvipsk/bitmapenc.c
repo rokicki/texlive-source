@@ -61,6 +61,10 @@
 #include "protos.h"
 #include "staticbmenc.h"
 #include "bitmapenc.h"
+/*
+ *   Do we use this functionality?
+ */
+int encodetype3 = 1 ;
 #ifdef STANDALONE
 #undef fopen
 #undef fclose
@@ -296,7 +300,8 @@ struct bmenc *bitmap_static_find(const char *fontname) {
 void downloadenc(struct bmenc *enc) {
    char encname[10] ;
    sprintf(encname, "/EN%d", curbmseq) ;
-   cmdout(encname) ;
+   newline() ; // someone may want to cut/paste the encodings
+   psnameout(encname) ;
    specialout('[') ;
    for (int i=0; i<256; i++) {
       int notdef = 0 ;
@@ -305,14 +310,14 @@ void downloadenc(struct bmenc *enc) {
       if (notdef > 2) {
          numout(notdef);
          specialout('{') ;
-         cmdout("/.notdef") ;
+         psnameout("/.notdef") ;
          specialout('}') ;
          cmdout("repeat") ;
          i += notdef - 1 ;
       } else if (notdef) {
-         cmdout("/.notdef") ;
+         psnameout("/.notdef") ;
       } else {
-         cmdout(enc->enc[i]) ;
+         psnameout(enc->enc[i]) ;
       }
    }
    specialout(']') ;
