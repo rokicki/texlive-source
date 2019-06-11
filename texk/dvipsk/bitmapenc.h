@@ -8,8 +8,8 @@
  */
 struct bmenc {
    const char **enc ;   // the encoding itself
-   struct bmenc *next ; // next encoding in linear linked list
    int downloaded_seq ; // -1: not downloaded; else, sequence number
+   struct bmenc *next ; // next encoding in linear linked list
 } ;
 /*
  *   This structure maintains a relationship between a font name and a
@@ -17,5 +17,6 @@ struct bmenc {
  */
 struct bmfontenc {
    const char *fontname ;   // dvi font name
-   struct bmenc *encoding ; // the encoding to use
+   struct bmenc *enc ;      // the encoding to use
+   struct bmfontenc *next ; // next encoding
 } ;

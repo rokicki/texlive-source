@@ -229,12 +229,6 @@ static struct bmenc *deduplicateencoding(const char **enc) {
       }
    return addbmenc(enc) ;
 }
-/*
- *   We warn if we have to use a built-in encoding, and set this value to 1.
- *   We warn again if we cannot find a built-in encoding and have to
- *   default to StandardEncoding, and set this value to 2.
- */
-static int warned_about_missing_encoding = 0 ;
 static struct bmenc *bitmap_enc_load(const char *fontname) {
    FILE *f = bitmap_enc_search(fontname) ;
    if (f != 0) {
@@ -257,24 +251,126 @@ static void initbmenc() {
    for (int i=0; i<sizeof(static_encodings)/sizeof(static_encodings[0]); i++)
       addbmenc(static_encodings[i]) ;
 }
+/*
+ *   Start a section: say we didn't download anything.
+ */
+static int curbmseq ;
+void bmenc_startsection() {
+   for (struct bmenc *p=bmlist; p!=0; p=p->next)
+      p->downloaded_seq = -1 ;
+   curbmseq = 0 ;
+}
+/*
+ *   Try to find a font in the static encoding list.  This list is sorted
+ *   so we can use binary search.
+ */
+struct bmenc *bitmap_static_find(const char *fontname) {
+   int numstatic = sizeof(bmfontarr) / sizeof(bmfontarr[0]) ;
+   int ptr = 0 ;
+   int bit = 1 ;
+   while ((bit << 1) < numstatic)
+      bit <<= 1 ;
+   while (bit > 0) {
+      int t = ptr + bit ;
+      if (t < numstatic && strcmp(fontname, bmfontarr[t].fontname) >= 0)
+         ptr = t ;
+      bit >>= 1 ;
+   }
+   if (strcmp(fontname, bmfontarr[ptr].fontname) != 0)
+      return 0 ;
+   for (struct bmenc *p=bmlist; p!=0; p=p->next)
+      if (p->enc == bmfontarr[ptr].enc)
+         return p ;
+   error("! internal error; matched name in static list but "
+         "didn't match encoding pointer") ;
+   return 0 ;
+}
+/*
+ *   Download the encoding and set the sequence number.
+ */
+void downloadenc(struct bmenc *enc) {
+   enc->downloaded_seq = curbmseq++ ;
+}
+/*
+ *   This is the list of fonts we have seen so far.
+ */
+struct bmfontenc *bmfontenclist ;
+/*
+ *   We warn if we have to use a built-in encoding, and set this value to 1.
+ *   We warn again if we cannot find a built-in encoding and have to
+ *   default to StandardEncoding, and set this value to 2.
+ */
+static int warned_about_missing_encoding = 0 ;
+/*
+ *   Print a warning message.
+ */
+void bmenc_warn(const char *fontname, const char *msg) {
+   fprintf(stderr, "dvips: Static bitmap font encoding for font %s: %s.\n",
+                   fontname, msg) ;
+}
+/*
+ *   About to download a font; find the encoding sequence number.
+ *   If needed, download a new sequence.  If we can't find one, use
+ *   -1; this font will not work for copy/paste.
+ */
+int getencoding_seq(const char *fontname) {
+   struct bmenc *enc = 0 ;
+   struct bmfontenc *p = bmfontenclist ;
+   for (; p!=0; p=p->next)
+      if (strcmp(fontname, p->fontname) == 0) {
+         enc = p->enc ;
+         if (enc == 0) // remember failures
+            return -1 ;
+         break ;
+      }
+   // not in list; try to load it from a file
+   if (enc == 0)
+      enc = bitmap_enc_load(fontname) ;
+   // couldn't find file; fall back to static encodings
+   if (enc == 0) {
+      if (warned_about_missing_encoding < 1) {
+         bmenc_warn(fontname, "cannot find encoding file; looking in static list") ;
+         warned_about_missing_encoding = 1 ;
+      }
+      enc = bitmap_static_find(fontname) ;
+   }
+   // did not find this in the list; add it to the list
+   if (p == 0) {
+      p = (struct bmfontenc *)mymalloc(sizeof(struct bmfontenc)) ;
+      p->fontname = strdup(fontname) ;
+      p->enc = enc ;
+      p->next = bmfontenclist ;
+      bmfontenclist = p ;
+   }
+   if (enc == 0) {
+      if (warned_about_missing_encoding < 2) {
+         bmenc_warn(fontname, "no match in static list; not encoding") ;
+         warned_about_missing_encoding = 2 ;
+      }
+      return -1 ; // don't download an encoding
+   }
+   if (enc->downloaded_seq < 0)
+      downloadenc(enc) ;
+   return enc->downloaded_seq ;
+}
 #ifdef STANDALONE
 /*
  *   Standalone test code:
  */
 void error(const char *s) {
    fprintf(stderr, "Failed: %s\n", s) ;
-   exit(0) ;
+   if (*s == '!')
+      exit(0) ;
 }
 char *mymalloc(int sz) {
    return (char *)malloc(sz) ;
 }
 int main(int argc, char *argv[]) {
-   FILE *f = fopen(argv[1], "r") ;
-   if (f == 0)
-      error("! can't open file") ;
-   const char **r = parseencoding(f) ;
-   for (int i=0; i<256; i++) {
-      printf("%d: %s\n", i, (r[i] ? r[i] : "/.notdef")) ;
+   initbmenc() ;
+   bmenc_startsection() ;
+   for (int i=1; i<argc; i++) {
+      int r = getencoding_seq(argv[i]) ;
+      printf("Result for %s is %d\n", argv[i], r) ;
    }
 }
 #endif
