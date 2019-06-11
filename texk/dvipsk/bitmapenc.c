@@ -205,17 +205,9 @@ static void freeencoding(const char **enc) {
  */
 static struct bmenc *bmlist ;
 /*
- *   Given a particular encoding, walk through our encoding list and
- *   see if it already exists; if so, return the existing one and
- *   free the new one.  The set of distinct encodings in a particular
- *   document is expected to be small (a few dozen at most).
+ *   Add an encoding to our list.
  */
-struct bmenc *deduplicateencoding(const char **enc) {
-   for (struct bmenc *p=bmlist; p!=0; p=p->next)
-      if (eqencoding(p->enc, enc)) {
-         freeencoding(enc) ;
-         return p ;
-      }
+struct bmenc *addbmenc(const char **enc) {
    struct bmenc *r = (struct bmenc *)mymalloc(sizeof(struct bmenc)) ;
    r->downloaded_seq = -1 ;
    r->enc = enc ;
@@ -224,12 +216,26 @@ struct bmenc *deduplicateencoding(const char **enc) {
    return r ;
 }
 /*
+ *   Given a particular encoding, walk through our encoding list and
+ *   see if it already exists; if so, return the existing one and
+ *   free the new one.  The set of distinct encodings in a particular
+ *   document is expected to be small (a few dozen at most).
+ */
+static struct bmenc *deduplicateencoding(const char **enc) {
+   for (struct bmenc *p=bmlist; p!=0; p=p->next)
+      if (eqencoding(p->enc, enc)) {
+         freeencoding(enc) ;
+         return p ;
+      }
+   return addbmenc(enc) ;
+}
+/*
  *   We warn if we have to use a built-in encoding, and set this value to 1.
  *   We warn again if we cannot find a built-in encoding and have to
  *   default to StandardEncoding, and set this value to 2.
  */
 static int warned_about_missing_encoding = 0 ;
-struct bmenc *bitmap_enc_load(const char *fontname) {
+static struct bmenc *bitmap_enc_load(const char *fontname) {
    FILE *f = bitmap_enc_search(fontname) ;
    if (f != 0) {
       const char **enc = parseencoding(f) ;
@@ -238,6 +244,18 @@ struct bmenc *bitmap_enc_load(const char *fontname) {
       return r ;
    }
    return 0 ;
+}
+/*
+ *   Initialize our bitmap encoding list from the static entries.
+ */
+static const char **static_encodings[] = {
+   E_cmb10, E_cmbsy10, E_cmbxti10, E_cmcsc10, E_cmex10, E_cminch, E_cmitt10,
+   E_cmmi10, E_cmsltt10, E_cmtex10, E_euex10, E_eufb10, E_eufm10, E_eurb10,
+   E_eusb10, E_lasy10, E_lcircle1, E_line10, E_msam10, E_msbm10, E_wncyb10
+} ;
+static void initbmenc() {
+   for (int i=0; i<sizeof(static_encodings)/sizeof(static_encodings[0]); i++)
+      addbmenc(static_encodings[i]) ;
 }
 #ifdef STANDALONE
 /*
