@@ -247,15 +247,20 @@ static const char **static_encodings[] = {
    E_cmmi10, E_cmsltt10, E_cmtex10, E_euex10, E_eufb10, E_eufm10, E_eurb10,
    E_eusb10, E_lasy10, E_lcircle1, E_line10, E_msam10, E_msbm10, E_wncyb10
 } ;
+static int bmenc_inited = 0 ;
 static void initbmenc() {
-   for (int i=0; i<sizeof(static_encodings)/sizeof(static_encodings[0]); i++)
-      addbmenc(static_encodings[i]) ;
+   if (!bmenc_inited) {
+      for (int i=0; i<sizeof(static_encodings)/sizeof(static_encodings[0]); i++)
+         addbmenc(static_encodings[i]) ;
+      bmenc_inited = 1 ;
+   }
 }
 /*
  *   Start a section: say we didn't download anything.
  */
 static int curbmseq ;
 void bmenc_startsection() {
+   initbmenc() ;
    for (struct bmenc *p=bmlist; p!=0; p=p->next)
       p->downloaded_seq = -1 ;
    curbmseq = 0 ;
@@ -429,7 +434,6 @@ void specialout(char c) {
    idok = 1 ;
 }
 int main(int argc, char *argv[]) {
-   initbmenc() ;
    bmenc_startsection() ;
    for (int i=1; i<argc; i++) {
       int r = getencoding_seq(argv[i]) ;

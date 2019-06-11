@@ -18,6 +18,8 @@ $(afm2tfm_OBJECTS): $(KPATHSEA_DEPEND)
 
 dvips_SOURCES = \
 	bbox.c \
+	bitmapenc.h \
+	bitmapenc.c \
 	color.c \
 	config.h \
 	debug.h \
@@ -50,6 +52,7 @@ dvips_SOURCES = \
 	scanpage.c \
 	search.c \
 	skippage.c \
+	staticbmenc.h \
 	t1part.c \
 	t1part.h \
 	tfmload.c \

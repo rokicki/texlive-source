@@ -228,6 +228,10 @@ extern Boolean virtualfont(fontdesctype *curfnt);
 extern char **load_enc_file(char *);
 extern boolean t1_subset_2(char *, unsigned char *, char *);
 
+/* prototypes for functions from bitmapenc.c */
+extern void bmenc_startsection(void) ;
+
+
 /*********** global variables ***********/
 
 /* global variables from dopage.c */
