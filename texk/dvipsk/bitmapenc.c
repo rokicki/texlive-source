@@ -67,9 +67,10 @@
 #endif
 #define ENCODING_CHAR_COUNT 256
 #define MAX_LINE_LENGTH 256
-char **parseencoding(FILE *f) {
+const char **parseencoding(FILE *f) {
    char encbuf[MAX_LINE_LENGTH+1] ;
-   char **e = (char **)mymalloc(sizeof(char *)*ENCODING_CHAR_COUNT) ;
+   const char **e = (const char **)
+                      mymalloc(sizeof(const char *)*ENCODING_CHAR_COUNT) ;
    for (int i=0; i<ENCODING_CHAR_COUNT; i++)
       e[i] = 0 ;
    for (int i=0; i<sizeof(encbuf); i++)
@@ -168,7 +169,7 @@ char **parseencoding(FILE *f) {
  *   Given a font name, find an encoding file.
  */
 #define MAX_NAME_SIZE 256
-FILE *bitmap_enc_search(const char *fontname) {
+static FILE *bitmap_enc_search(const char *fontname) {
    char namebuf[MAX_NAME_SIZE+1] ;
    if (fontname == 0 || strlen(fontname) > 128)
       error("! excessively long font name") ;
@@ -180,18 +181,59 @@ FILE *bitmap_enc_search(const char *fontname) {
 #endif
 }
 /*
- *   Given a font name, find an encoding.  Assumes caching will be done
- *   at the fontdef level.
- *
+ *   Are two raw encodings identical?
+ */
+static int eqencoding(const char **a, const char **b) {
+   if (a == b)
+      return 1 ;
+   for (int i=0; i<256; i++)
+      if (a[i] != b[i] && (a[i] == 0 || b[i] == 0 || strcmp(a[i], b[i]) != 0))
+         return 0 ;
+   return 1 ;
+}
+/*
+ *   Free an allocated encoding.
+ */
+static void freeencoding(const char **enc) {
+   for (int i=0; i<256; i++)
+      if (enc[i])
+         free((void*)enc[i]) ;
+   free(enc) ;
+}
+/*
+ *   Our list of encodings we've seen.
+ */
+static struct bmenc *bmlist ;
+/*
+ *   Given a particular encoding, walk through our encoding list and
+ *   see if it already exists; if so, return the existing one and
+ *   free the new one.  The set of distinct encodings in a particular
+ *   document is expected to be small (a few dozen at most).
+ */
+struct bmenc *deduplicateencoding(const char **enc) {
+   for (struct bmenc *p=bmlist; p!=0; p=p->next)
+      if (eqencoding(p->enc, enc)) {
+         freeencoding(enc) ;
+         return p ;
+      }
+   struct bmenc *r = (struct bmenc *)mymalloc(sizeof(struct bmenc)) ;
+   r->downloaded_seq = -1 ;
+   r->enc = enc ;
+   r->next = bmlist ;
+   bmlist = r ;
+   return r ;
+}
+/*
  *   We warn if we have to use a built-in encoding, and set this value to 1.
  *   We warn again if we cannot find a built-in encoding and have to
  *   default to StandardEncoding, and set this value to 2.
  */
 static int warned_about_missing_encoding = 0 ;
-char **bitmap_enc_load(const char *fontname) {
+struct bmenc *bitmap_enc_load(const char *fontname) {
    FILE *f = bitmap_enc_search(fontname) ;
    if (f != 0) {
-      char **r = parseencoding(f) ;
+      const char **enc = parseencoding(f) ;
+      struct bmenc *r = deduplicateencoding(enc) ;
       fclose(f) ;
       return r ;
    }
@@ -212,7 +254,7 @@ int main(int argc, char *argv[]) {
    FILE *f = fopen(argv[1], "r") ;
    if (f == 0)
       error("! can't open file") ;
-   char **r = parseencoding(f) ;
+   const char **r = parseencoding(f) ;
    for (int i=0; i<256; i++) {
       printf("%d: %s\n", i, (r[i] ? r[i] : "/.notdef")) ;
    }
