@@ -160,9 +160,9 @@ const char **parseencoding(FILE *f) {
          else {
             characters_loaded++ ;
             e[charnum] = strdup(charname) ;
+            if (e[charnum] == 0)
+               error("! ran out of memory reading bitmap encoding") ;
          }
-         if (e[charnum] == 0)
-            error("! ran out of memory reading bitmap encoding") ;
       }
    }
    if (characters_loaded == 0)
