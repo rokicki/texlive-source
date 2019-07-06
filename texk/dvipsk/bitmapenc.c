@@ -292,7 +292,7 @@ static int eqencoding(const char **a, const char **b) {
       return 1 ;
    if (a == STANDARD_ENCODING || b == STANDARD_ENCODING)
       return 0 ;
-   for (int i=0; i<256; i++)
+   for (int i=0; i<ENCODING_CHAR_COUNT; i++)
       if (a[i] != b[i] && (a[i] == 0 || b[i] == 0 || strcmp(a[i], b[i]) != 0))
          return 0 ;
    return 1 ;
@@ -366,14 +366,16 @@ static const char **bitmap_all_find(const char *fontname) {
  *   Download the encoding and set the sequence number.
  */
 static void downloadenc(struct bmenc *enc) {
+   if (enc->enc == STANDARD_ENCODING)
+      return ;
    char encname[10] ;
    sprintf(encname, "/EN%d", curbmseq) ;
    newline() ; // someone may want to cut/paste the encodings
    psnameout(encname) ;
    specialout('[') ;
-   for (int i=0; i<256; i++) {
+   for (int i=0; i<ENCODING_CHAR_COUNT; i++) {
       int notdef = 0 ;
-      while (i+notdef<256 && enc->enc[i+notdef]==0)
+      while (i+notdef<ENCODING_CHAR_COUNT && enc->enc[i+notdef]==0)
          notdef++ ;
       if (notdef > 2) {
          numout(notdef);
@@ -414,7 +416,8 @@ static void bmenc_warn(const char *fontname, const char *msg) {
 /*
  *   About to download a font; find the encoding sequence number.
  *   If needed, download a new sequence.  If we can't find one, use
- *   -1; this font will not work for copy/paste.
+ *   -1; this font will not work for copy/paste.  If it is
+ *   STANDARD_ENCODING, return the magic value for that.
  */
 static int tried_all = 0 ; // have we tried to load dvips-all.enc
 int getencoding_seq(const char *fontname) {
@@ -456,6 +459,8 @@ int getencoding_seq(const char *fontname) {
       }
       return -1 ; // don't download an encoding
    }
+   if (enc->enc == STANDARD_ENCODING)
+      return STANDARD_ENCODING_SEQ_MAGIC ;
    if (enc->downloaded_seq < 0)
       downloadenc(enc) ;
    return enc->downloaded_seq ;

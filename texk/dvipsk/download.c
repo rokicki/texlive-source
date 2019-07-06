@@ -10,6 +10,7 @@
 #ifndef DOWNLOAD_USING_PDFTEX
 #include "t1part.h"
 #endif
+#include "bitmapenc.h" // for STANDARD_ENCODING_SEQ_MAGIC
 #define DVIPS
 /*
  *   The external declarations:
@@ -323,7 +324,11 @@ download(charusetype *p, int psfont)
       specialout(']') ;
       cmdout("N") ;
       int seq = getencoding_seq(curfnt->name) ;
-      if (seq >= 0) {
+      if (seq == STANDARD_ENCODING_SEQ_MAGIC) {
+         psnameout("/IEn") ;
+         cmdout("StandardEncoding") ;
+         cmdout("N") ;
+      } else if (seq >= 0) {
          char cmdbuf[10] ;
          sprintf(cmdbuf, "EN%d", seq) ;
          psnameout("/IEn") ;
