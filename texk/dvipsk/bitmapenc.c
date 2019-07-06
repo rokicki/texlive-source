@@ -11,9 +11,7 @@
 /*
  *   Our first concern is finding and reading encoding files for bitmap
  *   fonts, and, if such cannot be found, determining a reasonable
- *   alternative.  Because we want the new dvips to work properly even
- *   when the encoding files cannot be found, we embed encodings for
- *   many common existing Metafont fonts (and complain about this once).
+ *   alternative.
  *
  *   We could use the code in writet1 to read an encoding file, but
  *   we would need to make some messy changes for that to work, and we
@@ -59,7 +57,6 @@
 #endif
 #include "dvips.h"
 #include "protos.h"
-#include "staticbmenc.h"
 #include "bitmapenc.h"
 /*
  *   Do we use this functionality?
@@ -71,22 +68,98 @@ int encodetype3 = 1 ;
 #endif
 #define ENCODING_CHAR_COUNT 256
 #define MAX_LINE_LENGTH 256
-const char **parseencoding(FILE *f) {
+/*
+ *   Some fonts claim to use the StandardEncoding.  Whether they do or not,
+ *   we believe them, and use this magic constant to indicate this.  Note
+ *   that this is a magic constant, and cannot be interpreted as an array
+ *   of 256 strings as all other encodings are.
+ */
+const char *static_standard_encoding = "StandardEncoding" ;
+const char **STANDARD_ENCODING = &static_standard_encoding ;
+/*
+ *   Parse the encoding file.  If use_all flag is set then we are parsing
+ *   the dvips_all file which can have multiple encodings, each preceded
+ *   by a set of lines with font names followed by a colon character.
+ *
+ *   If we are parsing them all, we build a sorted global list of entries
+ *   for later lookup, and always return 0.  Otherwise we just expect a
+ *   single encoding and we store that away.
+ */
+static int numstatic, capstatic, namedstatic ;
+static struct allfontenc {
+   const char *fontname ;
+   const char **enc ;
+} *bmfontarr ;
+static void add_fontname(const char *fontname) {
+   if (namedstatic >= capstatic) {
+      int ncapstatic = capstatic * 2 + 20 ;
+      struct allfontenc *nbmfontarr =
+          (struct allfontenc *)mymalloc(sizeof(struct allfontenc) * ncapstatic) ;
+      if (capstatic) {
+         memcpy(nbmfontarr, bmfontarr, sizeof(struct allfontenc)*capstatic) ;
+         free(bmfontarr) ;
+      }
+      bmfontarr = nbmfontarr ;
+      for (int i=capstatic; i<ncapstatic; i++) {
+         bmfontarr[i].fontname = 0 ;
+         bmfontarr[i].enc = 0 ;
+      }
+      capstatic = ncapstatic ;
+   }
+   bmfontarr[namedstatic].fontname = fontname ;
+   bmfontarr[namedstatic].enc = 0 ;
+   namedstatic++ ;
+}
+static void fillup_static(const char **e) {
+   while (numstatic < namedstatic)
+      bmfontarr[numstatic++].enc = e ;
+}
+static const char **parseencoding(FILE *f, int use_all) {
    char encbuf[MAX_LINE_LENGTH+1] ;
-   const char **e = (const char **)
-                      mymalloc(sizeof(const char *)*ENCODING_CHAR_COUNT) ;
-   for (int i=0; i<ENCODING_CHAR_COUNT; i++)
-      e[i] = 0 ;
    for (int i=0; i<sizeof(encbuf); i++)
       encbuf[i] = 0 ;
    int characters_loaded = 0 ;
+   const char **e = 0 ;
    while (fgets(encbuf, MAX_LINE_LENGTH, f) != 0) {
-      if (strncmp(encbuf, "dup", 3) == 0) { // possible line; parse it out
-         char *p = encbuf + 3 ;
+      char *p = encbuf ;
+      char *q = p ;
+      while (*q && *q != ':')
+         q++ ;
+      if (*q == ':') { // looks like a font name
+         if (q[1] >= ' ' || !use_all)
+            error("! unexpected colon or extra stuff at end of line in encoding file?") ;
+         if (e)
+            error("! unfinished encoding?") ;
+         *q = 0 ;
+         add_fontname(strdup(p)) ;
+      } else if (strncmp(p, "/Encoding", 9) == 0) { // check for StandardEncoding
+         p += 9 ;
+         while (*p && *p <= ' ')
+            p++ ;
+         if (strncmp(p, "StandardEncoding", 16) == 0) {
+            e = STANDARD_ENCODING ;
+            if (use_all) {
+               fillup_static(e) ;
+               e = 0 ;
+            } else
+               return e ;
+         } else {
+            e = (const char **)
+                      mymalloc(sizeof(const char *)*ENCODING_CHAR_COUNT) ;
+            for (int i=0; i<ENCODING_CHAR_COUNT; i++)
+               e[i] = 0 ;
+         }
+         characters_loaded = 0 ;
+      } else if (strncmp(p, "dup", 3) == 0) { // possible line; parse it out
+         p += 3 ;
          const char *err = 0 ;
+         if (e == 0)
+            err = "dup line before Encoding line" ;
+         if (e == STANDARD_ENCODING)
+            err = "dup line after STANDARD_ENCODING line" ;
          char *charname = 0 ;
          int charnum = 0 ;
-         do { // do/while(0); let us break to an error routine
+         if (err == 0) do { // do/while(0); let us break to an error routine
             if (*p != ' ' && *p != '\t') {
                err = "Missing whitespace after dup line" ;
                break ;
@@ -112,10 +185,6 @@ const char **parseencoding(FILE *f) {
                break ;
             }
             charnum = dig ;
-            if (*p != ' ' && *p != '\t') {
-               err = "Missing whitespace after dup line" ;
-               break ;
-            }
             while (*p == ' ' || *p == '\t')
                p++ ;
             if (*p != '/') {
@@ -151,7 +220,7 @@ const char **parseencoding(FILE *f) {
             }
          } while (0) ; // allow break for errors
          if (err) {
-            strcpy("! Reading bitmap encoding file failed: ", encbuf) ;
+            strcpy(encbuf, "! Reading bitmap encoding file failed: ") ;
             strcat(encbuf, err) ;
             error(encbuf) ;
          }
@@ -163,11 +232,42 @@ const char **parseencoding(FILE *f) {
             if (e[charnum] == 0)
                error("! ran out of memory reading bitmap encoding") ;
          }
+      } else if (strncmp(p, "readonly", 8) == 0) { // end of encoding
+         if (use_all) {
+            if (characters_loaded == 0 && e != STANDARD_ENCODING)
+               error("! did not find any valid character definitions in encoding file") ;
+            fillup_static(e) ;
+            e = 0 ;
+         }
       }
    }
-   if (characters_loaded == 0)
-      error("! did not find any valid character definitions in encoding file") ;
-   return e ;
+   if (use_all) {
+      // sort the static fonts for quicker search; Shell sort
+      int h = 1 ;
+      while (h < numstatic)
+         h = 3 * h + 1 ;
+      while (h > 1) {
+         h /= 3 ;
+         for (int i=h; i<numstatic; i++) {
+            int j = i ;
+            while (j >= h &&
+                   strcmp(bmfontarr[j-h].fontname, bmfontarr[j].fontname) > 0) {
+               const char *na = bmfontarr[j-h].fontname ;
+               const char **en = bmfontarr[j-h].enc ;
+               bmfontarr[j-h].fontname = bmfontarr[j].fontname ;
+               bmfontarr[j-h].enc = bmfontarr[j].enc ;
+               bmfontarr[j].fontname = na ;
+               bmfontarr[j].enc = en ;
+               j -= h ;
+            }
+         }
+      }
+      return 0 ;
+   } else {
+      if (characters_loaded == 0 && e != STANDARD_ENCODING)
+         error("! did not find any valid character definitions in encoding file") ;
+      return e ;
+   }
 }
 /*
  *   Given a font name, find an encoding file.
@@ -190,19 +290,12 @@ static FILE *bitmap_enc_search(const char *fontname) {
 static int eqencoding(const char **a, const char **b) {
    if (a == b)
       return 1 ;
+   if (a == STANDARD_ENCODING || b == STANDARD_ENCODING)
+      return 0 ;
    for (int i=0; i<256; i++)
       if (a[i] != b[i] && (a[i] == 0 || b[i] == 0 || strcmp(a[i], b[i]) != 0))
          return 0 ;
    return 1 ;
-}
-/*
- *   Free an allocated encoding.
- */
-static void freeencoding(const char **enc) {
-   for (int i=0; i<256; i++)
-      if (enc[i])
-         free((void*)enc[i]) ;
-   free(enc) ;
 }
 /*
  *   Our list of encodings we've seen.
@@ -222,59 +315,38 @@ struct bmenc *addbmenc(const char **enc) {
 /*
  *   Given a particular encoding, walk through our encoding list and
  *   see if it already exists; if so, return the existing one and
- *   free the new one.  The set of distinct encodings in a particular
+ *   drop the new one.  The set of distinct encodings in a particular
  *   document is expected to be small (a few dozen at most).
  */
 static struct bmenc *deduplicateencoding(const char **enc) {
    for (struct bmenc *p=bmlist; p!=0; p=p->next)
-      if (eqencoding(p->enc, enc)) {
-         freeencoding(enc) ;
+      if (eqencoding(p->enc, enc))
          return p ;
-      }
    return addbmenc(enc) ;
 }
-static struct bmenc *bitmap_enc_load(const char *fontname) {
-   FILE *f = bitmap_enc_search(fontname) ;
+static const char **bitmap_enc_load(const char *fontname, int use_all) {
+   FILE *f = bitmap_enc_search(use_all ? "all" : fontname) ;
    if (f != 0) {
-      const char **enc = parseencoding(f) ;
-      struct bmenc *r = deduplicateencoding(enc) ;
+      const char **r = parseencoding(f, use_all) ;
       fclose(f) ;
       return r ;
    }
    return 0 ;
 }
 /*
- *   Initialize our bitmap encoding list from the static entries.
- */
-static const char **static_encodings[] = {
-   E_cmb10, E_cmbsy10, E_cmbxti10, E_cmcsc10, E_cmex10, E_cminch, E_cmitt10,
-   E_cmmi10, E_cmsltt10, E_cmtex10, E_euex10, E_eufb10, E_eufm10, E_eurb10,
-   E_eusb10, E_lasy10, E_lcircle1, E_line10, E_msam10, E_msbm10, E_wncyb10
-} ;
-static int bmenc_inited = 0 ;
-static void initbmenc() {
-   if (!bmenc_inited) {
-      for (int i=0; i<sizeof(static_encodings)/sizeof(static_encodings[0]); i++)
-         addbmenc(static_encodings[i]) ;
-      bmenc_inited = 1 ;
-   }
-}
-/*
  *   Start a section: say we didn't download anything.
  */
 static int curbmseq ;
 void bmenc_startsection() {
-   initbmenc() ;
    for (struct bmenc *p=bmlist; p!=0; p=p->next)
       p->downloaded_seq = -1 ;
    curbmseq = 0 ;
 }
 /*
- *   Try to find a font in the static encoding list.  This list is sorted
+ *   Try to find a font in the all encoding list.  This list is sorted
  *   so we can use binary search.
  */
-struct bmenc *bitmap_static_find(const char *fontname) {
-   int numstatic = sizeof(bmfontarr) / sizeof(bmfontarr[0]) ;
+static const char **bitmap_all_find(const char *fontname) {
    int ptr = 0 ;
    int bit = 1 ;
    while ((bit << 1) < numstatic)
@@ -285,19 +357,15 @@ struct bmenc *bitmap_static_find(const char *fontname) {
          ptr = t ;
       bit >>= 1 ;
    }
-   if (strcmp(fontname, bmfontarr[ptr].fontname) != 0)
+   if (strcmp(fontname, bmfontarr[ptr].fontname) == 0)
+      return bmfontarr[ptr].enc ;
+   else
       return 0 ;
-   for (struct bmenc *p=bmlist; p!=0; p=p->next)
-      if (p->enc == bmfontarr[ptr].enc)
-         return p ;
-   error("! internal error; matched name in static list but "
-         "didn't match encoding pointer") ;
-   return 0 ;
 }
 /*
  *   Download the encoding and set the sequence number.
  */
-void downloadenc(struct bmenc *enc) {
+static void downloadenc(struct bmenc *enc) {
    char encname[10] ;
    sprintf(encname, "/EN%d", curbmseq) ;
    newline() ; // someone may want to cut/paste the encodings
@@ -338,7 +406,7 @@ static int warned_about_missing_encoding = 0 ;
 /*
  *   Print a warning message.
  */
-void bmenc_warn(const char *fontname, const char *msg) {
+static void bmenc_warn(const char *fontname, const char *msg) {
    fprintf(stderr,
        "dvips: Static bitmap font encoding for font %s (and others?): %s.\n",
                    fontname, msg) ;
@@ -348,6 +416,7 @@ void bmenc_warn(const char *fontname, const char *msg) {
  *   If needed, download a new sequence.  If we can't find one, use
  *   -1; this font will not work for copy/paste.
  */
+static int tried_all = 0 ; // have we tried to load dvips-all.enc
 int getencoding_seq(const char *fontname) {
    struct bmenc *enc = 0 ;
    struct bmfontenc *p = bmfontenclist ;
@@ -359,15 +428,18 @@ int getencoding_seq(const char *fontname) {
          break ;
       }
    // not in list; try to load it from a file
-   if (enc == 0)
-      enc = bitmap_enc_load(fontname) ;
-   // couldn't find file; fall back to static encodings
    if (enc == 0) {
-      if (warned_about_missing_encoding < 1) {
-         bmenc_warn(fontname, "cannot find encoding file; looking in static list") ;
-         warned_about_missing_encoding = 1 ;
+      const char **e = bitmap_enc_load(fontname, 0) ;
+      // did not find it; try to load it from the dvips-all list.
+      if (e == 0) {
+         if (!tried_all) {
+            bitmap_enc_load(fontname, 1) ;
+            tried_all = 1 ;
+         }
+         e = bitmap_all_find(fontname) ;
       }
-      enc = bitmap_static_find(fontname) ;
+      if (e)
+         enc = deduplicateencoding(e) ;
    }
    // did not find this in the list; add it to the list
    if (p == 0) {
@@ -431,6 +503,9 @@ void cmdout(const char *s) {
    printf("%s", s) ;
    pos += strlen(s) ;
    idok = 0 ;
+}
+void psnameout(const char *s) {
+   cmdout(s) ;
 }
 void specialout(char c) {
    if (pos + 1 >= MAXLINE)
