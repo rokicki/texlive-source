@@ -882,6 +882,10 @@ void psnameout(const char *s) {
    cmdout(s) ;
 }
 
+void pslineout(const char *s) {
+   fputs(s, bitfile) ;
+   newline() ;
+}
 
 static void
 chrcmd(char c)

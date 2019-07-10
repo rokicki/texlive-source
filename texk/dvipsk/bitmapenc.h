@@ -20,7 +20,3 @@ struct bmfontenc {
    struct bmenc *enc ;      // the encoding to use
    struct bmfontenc *next ; // next encoding
 } ;
-/*
- *   For StandardEncoding we use this magic (negative) constant.
- */
-#define STANDARD_ENCODING_SEQ_MAGIC (-0xad0be)

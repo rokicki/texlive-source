@@ -10,7 +10,6 @@
 #ifndef DOWNLOAD_USING_PDFTEX
 #include "t1part.h"
 #endif
-#include "bitmapenc.h" // for STANDARD_ENCODING_SEQ_MAGIC
 #define DVIPS
 /*
  *   The external declarations:
@@ -297,45 +296,10 @@ download(charusetype *p, int psfont)
    fprintf(bitfile, "%%DVIPSBitmapFont: %s %s %g %d\n", name+1, curfnt->name,
                      fontscale, numcc);
    double scale = fontscale * DPI / 72.0 ;
-   if (encodetype3) {
-      cmdout("IEn") ;
-      cmdout("FBB") ;
-      cmdout("FMat") ;
-      psnameout("/FMat") ;
-      specialout('[') ;
-      floatout(1.0/scale) ;
-      numout(0) ;
-      numout(0) ;
-      floatout(-1.0/scale) ;
-      numout(0) ;
-      numout(0) ;
-      specialout(']') ;
-      cmdout("N") ;
-      psnameout("/FBB") ;
-      // we add a bit of slop here, because this is only used for
-      // highlighting, and in theory if the bounding box is too
-      // tight, on some RIPs, characters could be clipped.
-      int slop = 1 ;
-      specialout('[') ;
-      numout(curfnt->llx-slop) ;
-      numout(curfnt->lly-slop) ;
-      numout(curfnt->urx+slop) ;
-      numout(curfnt->ury+slop) ;
-      specialout(']') ;
-      cmdout("N") ;
-      int seq = getencoding_seq(curfnt->name) ;
-      if (seq == STANDARD_ENCODING_SEQ_MAGIC) {
-         psnameout("/IEn") ;
-         cmdout("StandardEncoding") ;
-         cmdout("N") ;
-      } else if (seq >= 0) {
-         char cmdbuf[10] ;
-         sprintf(cmdbuf, "EN%d", seq) ;
-         psnameout("/IEn") ;
-         cmdout(cmdbuf) ;
-         cmdout("N") ;
-      }
-   }
+   int seq = -1 ;
+   if (encodetype3)
+      seq = downloadbmencoding(curfnt->name, scale,
+                         curfnt->llx, curfnt->lly, curfnt->urx, curfnt->ury) ;
    cmdout(name);
    numout((integer)numcc);
    numout((integer)maxcc + 1);
@@ -372,23 +336,8 @@ download(charusetype *p, int psfont)
    }
    cmdout("E");
    newline() ;
-   if (encodetype3) {
-      psnameout(name) ;
-      cmdout("load") ;
-      numout(0) ;
-      cmdout(name+1) ;
-      cmdout("currentfont") ;
-      floatout(scale) ;
-      cmdout("scalefont") ;
-      cmdout("put") ;
-      psnameout("/FMat") ;
-      cmdout("X") ;
-      psnameout("/FBB") ;
-      cmdout("X") ;
-      psnameout("/IEn") ;
-      cmdout("X") ;
-      newline();
-   }
+   if (seq >= 0)
+      finishbitmapencoding(name, scale) ;
    fprintf(bitfile, "%%EndDVIPSBitmapFont\n");
 }
 

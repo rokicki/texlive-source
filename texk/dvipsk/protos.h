@@ -145,7 +145,6 @@ extern int T1Char(int c);
 #endif
 extern void scout(unsigned char c);
 extern void cmdout(const char *s);
-extern void psnameout(const char *s);
 extern void floatout(float n);
 extern void doubleout(double n);
 extern void numout(int n);
@@ -158,6 +157,8 @@ extern void initprinter(sectiontype *sect);
 extern void setup(void);
 extern void cleanprinter(void);
 extern void psflush(void);
+extern void pslineout(const char *s);
+extern void psnameout(const char *s);
 extern void pageinit(void);
 extern void pageend(void);
 extern void drawrule(int rw, int rh);

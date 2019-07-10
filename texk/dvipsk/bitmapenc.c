@@ -26,29 +26,10 @@
 /*
  *   Reading the encodings.
  *
- *   Encodings we read are returned as an array of 256 pointers to
- *   character strings, with null for any values that are not defined.
- *   Further, we check for any explicit /.notdef entries and suppress
- *   those to null.  We read exactly one type of encoding file:  one
- *   that has precisely the following format:
- *
- *   /Encoding 256 array
- *   0 1 255 { 1 index exch /.notdef put} for
- *   dup 0 /Gamma put
- *   dup 1 /Delta put
- *   ...
- *   readonly def
- *
- *   Only characters that are defined need be in the file.  We
- *   skip every line that doesn't start with dup, and require the
- *   format of the dup lines to be precisely as shown, with one
- *   per line.
- *
- *   This is different from what writet1 reads, and is not general
- *   PostScript, but it matches the format for almost every Type 1
- *   font I have seen including the existing cm bitmap fonts which
- *   makes extraction from those PFB files easy.  And it's code that
- *   is easy to write and unlikely to have bugs.
+ *   Encodings we read are returned as an array C strings.  We do not
+ *   attempt to parse the contents of the encodings, because they
+ *   may contain additional dictionaries or other PostScript code
+ *   that can possibly do more advanced things.
  */
 #include <stdio.h>
 #include <string.h>
@@ -69,14 +50,6 @@ int encodetype3 = 1 ;
 #define ENCODING_CHAR_COUNT 256
 #define MAX_LINE_LENGTH 256
 /*
- *   Some fonts claim to use the StandardEncoding.  Whether they do or not,
- *   we believe them, and use this magic constant to indicate this.  Note
- *   that this is a magic constant, and cannot be interpreted as an array
- *   of 256 strings as all other encodings are.
- */
-const char *static_standard_encoding = "StandardEncoding" ;
-const char **STANDARD_ENCODING = &static_standard_encoding ;
-/*
  *   Parse the encoding file.  If use_all flag is set then we are parsing
  *   the dvips_all file which can have multiple encodings, each preceded
  *   by a set of lines with font names followed by a colon character.
@@ -90,11 +63,24 @@ static struct allfontenc {
    const char *fontname ;
    const char **enc ;
 } *bmfontarr ;
+const char **working_enc ;
+int in_working_enc = 0 ;
+int working_enc_left = 0 ;
 static void add_fontname(const char *fontname) {
+   if (in_working_enc) { // flush
+      const char **e = working_enc ;
+      while (numstatic < namedstatic)
+         bmfontarr[numstatic++].enc = e ;
+      working_enc += in_working_enc + 1 ;
+      working_enc_left -= in_working_enc + 1 ;
+      in_working_enc = 0 ;
+   }
+   if (fontname == 0)
+      return ;
    if (namedstatic >= capstatic) {
       int ncapstatic = capstatic * 2 + 20 ;
       struct allfontenc *nbmfontarr =
-          (struct allfontenc *)mymalloc(sizeof(struct allfontenc) * ncapstatic) ;
+        (struct allfontenc *)mymalloc(sizeof(struct allfontenc) * ncapstatic) ;
       if (capstatic) {
          memcpy(nbmfontarr, bmfontarr, sizeof(struct allfontenc)*capstatic) ;
          free(bmfontarr) ;
@@ -110,137 +96,41 @@ static void add_fontname(const char *fontname) {
    bmfontarr[namedstatic].enc = 0 ;
    namedstatic++ ;
 }
-static void fillup_static(const char **e) {
-   while (numstatic < namedstatic)
-      bmfontarr[numstatic++].enc = e ;
+static void add_encline(const char *encline) {
+   if (in_working_enc + 1 >= working_enc_left) {
+      int new_enc_size = 100 + 2 * in_working_enc ;
+      const char **new_working_enc =
+               (const char **)mymalloc(sizeof(const char **) * new_enc_size) ;
+      for (int i=0; i<new_enc_size; i++)
+         new_working_enc[i] = 0 ;
+      for (int i=0; i<in_working_enc; i++)
+         new_working_enc[i] = working_enc[i] ;
+      working_enc = new_working_enc ;
+      working_enc_left = new_enc_size - in_working_enc ;
+   }
+   working_enc[in_working_enc++] = encline ;
 }
 static const char **parseencoding(FILE *f, int use_all) {
    char encbuf[MAX_LINE_LENGTH+1] ;
    for (int i=0; i<sizeof(encbuf); i++)
       encbuf[i] = 0 ;
-   int characters_loaded = 0 ;
-   const char **e = 0 ;
    while (fgets(encbuf, MAX_LINE_LENGTH, f) != 0) {
       char *p = encbuf ;
       char *q = p ;
-      while (*q && *q != ':')
+      while (*q && *q != ' ' && *q != ':')
          q++ ;
-      if (*q == ':') { // looks like a font name
+      if (use_all && *q == ':') { // looks like a font name
          if (q[1] >= ' ' || !use_all)
-            error("! unexpected colon or extra stuff at end of line in encoding file?") ;
-         if (e)
-            error("! unfinished encoding?") ;
+            error(
+       "! unexpected colon or extra stuff at end of line in encoding file?") ;
          *q = 0 ;
          add_fontname(strdup(p)) ;
-      } else if (strncmp(p, "/Encoding", 9) == 0) { // check for StandardEncoding
-         p += 9 ;
-         while (*p && *p <= ' ')
-            p++ ;
-         if (strncmp(p, "StandardEncoding", 16) == 0) {
-            e = STANDARD_ENCODING ;
-            if (use_all) {
-               fillup_static(e) ;
-               e = 0 ;
-            } else
-               return e ;
-         } else {
-            e = (const char **)
-                      mymalloc(sizeof(const char *)*ENCODING_CHAR_COUNT) ;
-            for (int i=0; i<ENCODING_CHAR_COUNT; i++)
-               e[i] = 0 ;
-         }
-         characters_loaded = 0 ;
-      } else if (strncmp(p, "dup", 3) == 0) { // possible line; parse it out
-         p += 3 ;
-         const char *err = 0 ;
-         if (e == 0)
-            err = "dup line before Encoding line" ;
-         if (e == STANDARD_ENCODING)
-            err = "dup line after STANDARD_ENCODING line" ;
-         char *charname = 0 ;
-         int charnum = 0 ;
-         if (err == 0) do { // do/while(0); let us break to an error routine
-            if (*p != ' ' && *p != '\t') {
-               err = "Missing whitespace after dup line" ;
-               break ;
-            }
-            while (*p == ' ' || *p == '\t')
-               p++ ;
-            int dig = 0 ;
-            if ('0' > *p || *p > '9') {
-               err = "Missing number after dup" ;
-               break ;
-            }
-            while ('0' <= *p && *p <= '9') {
-               dig = 10 * dig + *p++ - '0' ;
-               if (dig > 255)
-                  break ;
-            }
-            if (dig > 255) {
-               err = "Code value too large" ;
-               break ;
-            }
-            if (e[dig] != 0) {
-               err = "Duplicated code value" ;
-               break ;
-            }
-            charnum = dig ;
-            while (*p == ' ' || *p == '\t')
-               p++ ;
-            if (*p != '/') {
-               err = "Glyph name must start with slash" ;
-               break ;
-            }
-            charname = p++ ;
-            // PostScript names can be anything but the basic
-            // delimiters ()[]{}<>/%.
-            while (*p > ' ' && 0 == strchr("[]{}()<>/%", *p))
-               p++ ;
-            if (p == charname + 1) {
-               err = "Empty glyph name" ;
-               break ;
-            }
-            if (*p != ' ' && *p != '\t') {
-               err = "Missing whitespace after glyph name" ;
-               break ;
-            }
-            *p++ = 0 ; // terminate the charname string and munge the buffer
-            while (*p == ' ' || *p == '\t')
-               p++ ;
-            if (strncmp(p, "put", 3) != 0) {
-               err = "Missing put after glyph name" ;
-               break ;
-            }
-            p += 3 ;
-            while (*p == ' ' || *p == '\t')
-               p++ ;
-            if (*p != 0 && *p != 10 && *p != 13 && *p != '%') {
-               err = "Extra stuff after put" ;
-               break ;
-            }
-         } while (0) ; // allow break for errors
-         if (err) {
-            strcpy(encbuf, "! Reading bitmap encoding file failed: ") ;
-            strcat(encbuf, err) ;
-            error(encbuf) ;
-         }
-         if (strcmp(charname, "/.notdef") == 0)
-            e[charnum] = 0 ;
-         else {
-            characters_loaded++ ;
-            e[charnum] = strdup(charname) ;
-            if (e[charnum] == 0)
-               error("! ran out of memory reading bitmap encoding") ;
-         }
-      } else if (strncmp(p, "readonly", 8) == 0) { // end of encoding
-         if (use_all) {
-            if (characters_loaded == 0 && e != STANDARD_ENCODING)
-               error("! did not find any valid character definitions in encoding file") ;
-            fillup_static(e) ;
-            e = 0 ;
-         }
+      } else {
+         add_encline(strdup(p)) ;
       }
    }
+   if (use_all)
+      add_fontname(0) ; // flushes last encoding
    if (use_all) {
       // sort the static fonts for quicker search; Shell sort
       int h = 1 ;
@@ -264,8 +154,9 @@ static const char **parseencoding(FILE *f, int use_all) {
       }
       return 0 ;
    } else {
-      if (characters_loaded == 0 && e != STANDARD_ENCODING)
-         error("! did not find any valid character definitions in encoding file") ;
+      const char **e = working_enc ;
+      if (e == 0)
+         error("! No lines in encoding?") ;
       return e ;
    }
 }
@@ -290,9 +181,7 @@ static FILE *bitmap_enc_search(const char *fontname) {
 static int eqencoding(const char **a, const char **b) {
    if (a == b)
       return 1 ;
-   if (a == STANDARD_ENCODING || b == STANDARD_ENCODING)
-      return 0 ;
-   for (int i=0; i<ENCODING_CHAR_COUNT; i++)
+   for (int i=0; a[i] != 0 && b[i] != 0; i++)
       if (a[i] != b[i] && (a[i] == 0 || b[i] == 0 || strcmp(a[i], b[i]) != 0))
          return 0 ;
    return 1 ;
@@ -325,6 +214,7 @@ static struct bmenc *deduplicateencoding(const char **enc) {
    return addbmenc(enc) ;
 }
 static const char **bitmap_enc_load(const char *fontname, int use_all) {
+ printf("Loading %s useall %d\n", fontname, use_all) ;
    FILE *f = bitmap_enc_search(use_all ? "all" : fontname) ;
    if (f != 0) {
       const char **r = parseencoding(f, use_all) ;
@@ -366,34 +256,86 @@ static const char **bitmap_all_find(const char *fontname) {
  *   Download the encoding and set the sequence number.
  */
 static void downloadenc(struct bmenc *enc) {
-   if (enc->enc == STANDARD_ENCODING)
-      return ;
-   char encname[10] ;
-   sprintf(encname, "/EN%d", curbmseq) ;
    newline() ; // someone may want to cut/paste the encodings
-   psnameout(encname) ;
-   specialout('[') ;
-   for (int i=0; i<ENCODING_CHAR_COUNT; i++) {
-      int notdef = 0 ;
-      while (i+notdef<ENCODING_CHAR_COUNT && enc->enc[i+notdef]==0)
-         notdef++ ;
-      if (notdef > 2) {
-         numout(notdef);
-         specialout('{') ;
-         psnameout("/.notdef") ;
-         specialout('}') ;
-         cmdout("repeat") ;
-         i += notdef - 1 ;
-      } else if (notdef) {
-         psnameout("/.notdef") ;
-      } else {
-         psnameout(enc->enc[i]) ;
-      }
+   int fresh = 0 ;
+   if (enc->downloaded_seq < 0) {
+      for (int i=0; enc->enc[i]; i++)
+         pslineout(enc->enc[i]) ;
+      enc->downloaded_seq = curbmseq++ ;
+      newline() ;
+      fresh = 1 ;
+   } else {
+      newline() ;
    }
+   newline() ;
+   char cmdbuf[16] ;
+   sprintf(cmdbuf, "/EN%d", enc->downloaded_seq) ;
+   if (fresh) {
+      cmdout("A") ;
+      psnameout(cmdbuf) ;
+      cmdout("X") ;
+   } else {
+      cmdout(cmdbuf+1) ;
+   }
+}
+/*
+ *   Send out the new encoding, font bounding box, and font matrix.
+ */
+int downloadbmencoding(const char *name, double scale,
+                       int llx, int lly, int urx, int ury) {
+   int seq = getencoding_seq(name) ;
+   if (seq < 0)
+      return -1 ;
+   cmdout("IEn") ;
+   cmdout("S") ;
+   psnameout("/IEn") ;
+   cmdout("X") ;
+   cmdout("FBB") ;
+   cmdout("FMat") ;
+   psnameout("/FMat") ;
+   specialout('[') ;
+   floatout(1.0/scale) ;
+   numout(0) ;
+   numout(0) ;
+   floatout(-1.0/scale) ;
+   numout(0) ;
+   numout(0) ;
    specialout(']') ;
    cmdout("N") ;
-   newline() ;
-   enc->downloaded_seq = curbmseq++ ;
+   psnameout("/FBB") ;
+   // we add a bit of slop here, because this is only used for
+   // highlighting, and in theory if the bounding box is too
+   // tight, on some RIPs, characters could be clipped.
+   int slop = 1 ;
+   specialout('[') ;
+   numout(llx-slop) ;
+   numout(lly-slop) ;
+   numout(urx+slop) ;
+   numout(ury+slop) ;
+   specialout(']') ;
+   cmdout("N") ;
+   return seq ;
+}
+/*
+ *   Finish up the downloaded encoding; scale the font, and restore the
+ *   previous global definitions.
+ */
+void finishbitmapencoding(const char *name, double scale) {
+   psnameout(name) ;
+   cmdout("load") ;
+   numout(0) ;
+   cmdout(name+1) ;
+   cmdout("currentfont") ;
+   floatout(scale) ;
+   cmdout("scalefont") ;
+   cmdout("put") ;
+   psnameout("/FMat") ;
+   cmdout("X") ;
+   psnameout("/FBB") ;
+   cmdout("X") ;
+   psnameout("/IEn") ;
+   cmdout("X") ;
+   newline();
 }
 /*
  *   This is the list of fonts we have seen so far.
@@ -416,11 +358,11 @@ static void bmenc_warn(const char *fontname, const char *msg) {
 /*
  *   About to download a font; find the encoding sequence number.
  *   If needed, download a new sequence.  If we can't find one, use
- *   -1; this font will not work for copy/paste.  If it is
- *   STANDARD_ENCODING, return the magic value for that.
+ *   -1; this font will not work for copy/paste.
  */
 static int tried_all = 0 ; // have we tried to load dvips-all.enc
 int getencoding_seq(const char *fontname) {
+ printf("Getencseq for %s\n", fontname) ;
    struct bmenc *enc = 0 ;
    struct bmfontenc *p = bmfontenclist ;
    for (; p!=0; p=p->next)
@@ -459,10 +401,7 @@ int getencoding_seq(const char *fontname) {
       }
       return -1 ; // don't download an encoding
    }
-   if (enc->enc == STANDARD_ENCODING)
-      return STANDARD_ENCODING_SEQ_MAGIC ;
-   if (enc->downloaded_seq < 0)
-      downloadenc(enc) ;
+   downloadenc(enc) ;
    return enc->downloaded_seq ;
 }
 #ifdef STANDALONE
