@@ -116,7 +116,10 @@ static const char **parseencoding(FILE *f, int use_all) {
       encbuf[i] = 0 ;
    while (fgets(encbuf, MAX_LINE_LENGTH, f) != 0) {
       char *p = encbuf ;
-      char *q = p ;
+      char *q = p + strlen(p) - 1 ;
+      while (q > p && *q < ' ') // kill line terminators
+         *q-- = 0 ;
+      q = p ;
       while (*q && *q != ' ' && *q != ':')
          q++ ;
       if (use_all && *q == ':') { // looks like a font name
@@ -214,7 +217,6 @@ static struct bmenc *deduplicateencoding(const char **enc) {
    return addbmenc(enc) ;
 }
 static const char **bitmap_enc_load(const char *fontname, int use_all) {
- printf("Loading %s useall %d\n", fontname, use_all) ;
    FILE *f = bitmap_enc_search(use_all ? "all" : fontname) ;
    if (f != 0) {
       const char **r = parseencoding(f, use_all) ;
@@ -256,16 +258,13 @@ static const char **bitmap_all_find(const char *fontname) {
  *   Download the encoding and set the sequence number.
  */
 static void downloadenc(struct bmenc *enc) {
-   newline() ; // someone may want to cut/paste the encodings
    int fresh = 0 ;
    if (enc->downloaded_seq < 0) {
+      newline() ;
       for (int i=0; enc->enc[i]; i++)
          pslineout(enc->enc[i]) ;
       enc->downloaded_seq = curbmseq++ ;
-      newline() ;
       fresh = 1 ;
-   } else {
-      newline() ;
    }
    newline() ;
    char cmdbuf[16] ;
@@ -281,6 +280,7 @@ static void downloadenc(struct bmenc *enc) {
 /*
  *   Send out the new encoding, font bounding box, and font matrix.
  */
+static int getencoding_seq(const char *fontname) ;
 int downloadbmencoding(const char *name, double scale,
                        int llx, int lly, int urx, int ury) {
    int seq = getencoding_seq(name) ;
@@ -361,8 +361,7 @@ static void bmenc_warn(const char *fontname, const char *msg) {
  *   -1; this font will not work for copy/paste.
  */
 static int tried_all = 0 ; // have we tried to load dvips-all.enc
-int getencoding_seq(const char *fontname) {
- printf("Getencseq for %s\n", fontname) ;
+static int getencoding_seq(const char *fontname) {
    struct bmenc *enc = 0 ;
    struct bmfontenc *p = bmfontenclist ;
    for (; p!=0; p=p->next)
@@ -423,6 +422,13 @@ void newline() {
    printf("\n") ;
    idok = 1 ;
    pos = 0 ;
+}
+void floatout(float f) {
+   printf("%g", f) ;
+   pos += 8 ;
+}
+void pslineout(const char *s) {
+   printf("%s\n", s) ;
 }
 void numout(int num) {
    int len = 1 ;

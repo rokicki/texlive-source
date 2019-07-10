@@ -884,7 +884,8 @@ void psnameout(const char *s) {
 
 void pslineout(const char *s) {
    fputs(s, bitfile) ;
-   newline() ;
+   fprintf(bitfile, "\n");
+   linepos = 0;
 }
 
 static void
