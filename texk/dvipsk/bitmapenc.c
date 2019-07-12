@@ -274,7 +274,10 @@ static void downloadenc(struct bmenc *enc) {
       psnameout(cmdbuf) ;
       cmdout("X") ;
    } else {
-      cmdout(cmdbuf+1) ;
+      // we use load here specifically to defer execution until the
+      // new font dictionary is on the stack and being built.
+      psnameout(cmdbuf) ;
+      cmdout("load") ;
    }
 }
 /*
