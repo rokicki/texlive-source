@@ -18,7 +18,6 @@ $(afm2tfm_OBJECTS): $(KPATHSEA_DEPEND)
 
 dvips_SOURCES = \
 	bbox.c \
-	bitmapenc.h \
 	bitmapenc.c \
 	color.c \
 	config.h \

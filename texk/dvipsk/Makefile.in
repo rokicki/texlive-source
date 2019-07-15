@@ -670,7 +670,6 @@ AM_CFLAGS = $(WARNING_CFLAGS)
 afm2tfm_SOURCES = afm2tfm.c
 dvips_SOURCES = \
 	bbox.c \
-	bitmapenc.h \
 	bitmapenc.c \
 	color.c \
 	config.h \
