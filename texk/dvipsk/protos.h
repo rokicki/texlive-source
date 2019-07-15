@@ -16,9 +16,10 @@ extern void findbb(int bop);
 
 /* prototypes for functions from bitmapenc.c */
 extern void bmenc_startsection(void) ;
+extern void bitmapencopt(int) ;
 extern int downloadbmencoding(const char *name, double scale,
                               int llx, int lly, int urx, int ury) ;
-void finishbitmapencoding(const char *name, double scale) ;
+extern void finishbitmapencoding(const char *name, double scale) ;
 
 /* prototypes for functions from color.c */
 extern void initcolor(void);

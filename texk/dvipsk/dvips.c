@@ -833,6 +833,9 @@ case 'i':
 case 'j':
                partialdownload = (*p != '0');
                break;
+case 'J':
+               bitmapencopt(*p > ' ' ? (*p - '0') : 0) ;
+               break ;
 case 'k':
                cropmarks = (*p != '0');
                break;

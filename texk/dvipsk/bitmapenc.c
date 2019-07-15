@@ -40,9 +40,16 @@
 #include "protos.h"
 #include "bitmapenc.h"
 /*
- *   Do we use this functionality?
+ *   Do we use this functionality?  If 0, then no; if 1, then yes, but
+ *   suppress warnings; if 2, then warn.
  */
 int encodetype3 = 1 ;
+void bitmapencopt(int v) {
+   if (0 <= v && v <= 2)
+      encodetype3 = v ;
+   else
+      error("! Bad option to J") ;
+}
 #ifdef STANDALONE
 #undef fopen
 #undef fclose
@@ -354,8 +361,9 @@ static int warned_about_missing_encoding = 0 ;
  *   Print a warning message.
  */
 static void bmenc_warn(const char *fontname, const char *msg) {
-   fprintf(stderr,
-       "dvips: Static bitmap font encoding for font %s (and others?): %s.\n",
+   if (encodetype3 > 1)
+      fprintf(stderr,
+         "dvips: Static bitmap font encoding for font %s (and others?): %s.\n",
                    fontname, msg) ;
 }
 /*
