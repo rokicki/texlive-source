@@ -51,7 +51,6 @@ dvips_SOURCES = \
 	scanpage.c \
 	search.c \
 	skippage.c \
-	staticbmenc.h \
 	t1part.c \
 	t1part.h \
 	tfmload.c \
