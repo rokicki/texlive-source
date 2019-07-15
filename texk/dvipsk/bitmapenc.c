@@ -171,7 +171,7 @@ static void add_encline(const char *encline) {
  */
 static const char **parseencoding(FILE *f, int use_all) {
    char encbuf[MAX_LINE_LENGTH+1] ;
-   for (int i=0; i<sizeof(encbuf); i++)
+   for (size_t i=0; i<sizeof(encbuf); i++)
       encbuf[i] = 0 ;
    while (fgets(encbuf, MAX_LINE_LENGTH, f) != 0) {
       char *p = encbuf ;
