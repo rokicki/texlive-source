@@ -533,6 +533,7 @@ int main(int argc, char *argv[]) {
    bmenc_startsection() ;
    for (int i=1; i<argc; i++) {
       int r = getencoding_seq(argv[i]) ;
+      printf("\n") ;
       printf("Result for %s is %d\n", argv[i], r) ;
    }
 }
