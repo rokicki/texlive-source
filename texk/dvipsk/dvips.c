@@ -295,7 +295,7 @@ static const char *helparr[] = {
 #endif
 "-h f Add header file",
 "-i*  Separate file per section",
-"-j*  Download fonts partially",
+"-j*  Download fonts partially        -J*  Good encodings for bitmap fonts",
 "-k*  Print crop marks                -K*  Pull comments from inclusions",
 "-l # Last page                       -L*  Last special papersize wins",
 "-m*  Manual feed                     -M*  Don't make fonts",
