@@ -302,6 +302,8 @@ void bmenc_startsection() {
  *   so we can use binary search.
  */
 static const char **bitmap_all_find(const char *fontname) {
+   if (numstatic == 0)
+      return 0 ;
    int ptr = 0 ;
    int bit = 1 ;
    while ((bit << 1) < numstatic)
