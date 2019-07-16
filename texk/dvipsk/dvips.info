@@ -3763,7 +3763,7 @@ File: dvips.info,  Node: Bitmap font encodings,  Next: PostScript typesetting,  
 7.6.3 Bitmap font encodings
 ---------------------------
 
-To dvips, bitmapped fonts do not have any notion of linguistics; they
+To dvips, bitmapped fonts do not have any linguistic metadata; they
 are simply a vector of glyphs.  By comparison, PostScript fonts are
 required to contain an encoding vector that at the least provides glyph
 names; these names can permit PostScript and PDF viewers to extract
