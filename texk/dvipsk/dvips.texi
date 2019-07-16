@@ -739,6 +739,13 @@ default in the current release.  Some debugging flags trace this operation
 (@pxref{Debug options}).  You can also control partial downloading on a
 per-font basis (@pxref{psfonts.map}).
 
+@item -J*
+@opindex -J @r{for bitmap font encoding)
+Download useful encodings for bitmapped fonts.  This flag has
+three possible values: @samp{-J0} (to turn it off), @samp{-J} or @samp{-J1}
+(to turn it on with no warnings), or @samp{-J2} (to turn it on and
+enable warnings).
+
 @item -k*
 @opindex -k @r{for cropmarks}
 @cindex cropmarks
@@ -1391,6 +1398,10 @@ details}.
 @item j*
 @opindex j @r{config command (partial font downloading)}
 Partially download Type 1 fonts.  Same as @samp{-j}, @pxref{Option details}.
+
+@item J*
+@opindex J @r{config command (bitmap font encoding)}
+Enable bitmap font encoding.  Same as @samp{-J}, @pxref{Option details}.
 
 @item K*
 @opindex K @r{config command (comment removal)}
