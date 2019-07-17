@@ -463,7 +463,7 @@ static int getencoding_seq(const char *fontname) {
    }
    if (enc == 0) {
       if (warned_about_missing_encoding < 2) {
-         bmenc_warn(fontname, "no match in static list; not encoding") ;
+         bmenc_warn(fontname, "no encoding found") ;
          warned_about_missing_encoding = 2 ;
       }
       return -1 ; // don't download an encoding
