@@ -362,10 +362,10 @@ int downloadbmencoding(const char *name, double scale,
    cmdout("FMat") ;
    psnameout("/FMat") ;
    specialout('[') ;
-   floatout(1.0/scale) ;
+   doubleout(1.0/scale) ;
    numout(0) ;
    numout(0) ;
-   floatout(-1.0/scale) ;
+   doubleout(-1.0/scale) ;
    numout(0) ;
    numout(0) ;
    specialout(']') ;
@@ -382,6 +382,7 @@ int downloadbmencoding(const char *name, double scale,
    numout(ury+slop) ;
    specialout(']') ;
    cmdout("N") ;
+   newline() ;
    return seq ;
 }
 /*
@@ -394,7 +395,7 @@ void finishbitmapencoding(const char *name, double scale) {
    numout(0) ;
    cmdout(name+1) ;
    cmdout("currentfont") ;
-   floatout(scale) ;
+   doubleout(scale) ;
    cmdout("scalefont") ;
    cmdout("put") ;
    psnameout("/FMat") ;
@@ -490,7 +491,7 @@ void newline() {
    idok = 1 ;
    pos = 0 ;
 }
-void floatout(float f) {
+void doubleout(float f) {
    printf("%g", f) ;
    pos += 8 ;
 }

@@ -37,7 +37,11 @@ quarterword *unpack_bb(chardesctype *c, integer *cwidth, integer *cheight,
          *cwidth = p[0] * 256 + p[1];
          *cheight = p[2] * 256 + p[3];
          *xoff = p[4] * 256 + p[5];
+         if (*xoff > 32767)
+            *xoff -= 65536 ;
          *yoff = p[6] * 256 + p[7];
+         if (*xoff > 32767)
+            *xoff -= 65536 ;
          p += 8;
       }
    } else {
