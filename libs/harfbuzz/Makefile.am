@@ -29,10 +29,14 @@ noinst_LIBRARIES = libharfbuzz.a
 ## common
 AM_CPPFLAGS = -DHB_NO_MT -DHAVE_FALLBACK=1 \
 	-I$(top_srcdir)/$(HARFBUZZ_SRC)
+## For luahbtex we need this (and the rest ?)
+AM_CXXFLAGS = $(VISIBILITY_CXXFLAGS) $(WARNING_CXXFLAGS)
+
 libharfbuzz_dependencies =
 libharfbuzz_a_SOURCES =  \
 	@HARFBUZZ_TREE@/src/hb-algs.hh \
 	@HARFBUZZ_TREE@/src/hb-atomic.hh \
+	@HARFBUZZ_TREE@/src/hb-bimap.hh \
 	@HARFBUZZ_TREE@/src/hb-blob.hh \
 	@HARFBUZZ_TREE@/src/hb-blob.cc \
 	@HARFBUZZ_TREE@/src/hb-buffer.hh \
@@ -73,6 +77,7 @@ libharfbuzz_a_SOURCES =  \
 	@HARFBUZZ_TREE@/src/hb-ot-cmap-table.hh \
 	@HARFBUZZ_TREE@/src/hb-ot-face.cc \
 	@HARFBUZZ_TREE@/src/hb-ot-face.hh \
+	@HARFBUZZ_TREE@/src/hb-ot-face-table-list.hh \
 	@HARFBUZZ_TREE@/src/hb-ot-glyf-table.hh \
 	@HARFBUZZ_TREE@/src/hb-ot-hdmx-table.hh \
 	@HARFBUZZ_TREE@/src/hb-ot-head-table.hh \
