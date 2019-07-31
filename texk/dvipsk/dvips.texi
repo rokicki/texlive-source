@@ -4675,7 +4675,7 @@ glyph names; these names can permit PostScript and PDF viewers to
 extract legible text from Postscript and PDF output.
 
 Unlike previous versions, 
-Dvips versions 2019 and later add glyph naming information to Type 3
+dvips versions 2019 and later add glyph naming information to Type 3
 bitmapped fonts (if they can locate such information) as an Encoding
 vector.  This provides some support for search, for copy and paste,
 and even some limited support for accessibility.  The -J command line
