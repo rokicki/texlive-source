@@ -347,6 +347,9 @@ static void downloadenc(struct bmenc *enc) {
 }
 /*
  *   Send out the new encoding, font bounding box, and font matrix.
+ *   If we cannot find an encoding file for this font, do what we
+ *   used to do instead (don't give it an encoding or resize or
+ *   rescale).
  */
 static int getencoding_seq(const char *fontname) ;
 int downloadbmencoding(const char *name, double scale,
@@ -409,7 +412,7 @@ void finishbitmapencoding(const char *name, double scale) {
 /*
  *   We warn if we have to use a built-in encoding, and set this value to 1.
  *   We warn again if we cannot find a built-in encoding and have to
- *   default to StandardEncoding, and set this value to 2.  In any case,
+ *   default to previous behavior, and set this value to 2.  In any case,
  *   we only issue warnings if the encodetype3 flag is set to a value greater
  *   than one; we don't want to bother folks about this new functionality.
  */

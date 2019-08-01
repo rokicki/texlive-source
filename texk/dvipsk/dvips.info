@@ -1,4 +1,5 @@
-This is dvips.info, produced by makeinfo version 4.8 from dvips.texi.
+This is ../../../texk/dvipsk/dvips.info, produced by makeinfo version
+4.8 from ../../../texk/dvipsk/dvips.texi.
 
    This manual documents Dvips version 2019.1 (July 2019), a program to
 translate a DVI file into PostScript.  You may freely use, modify
@@ -3763,13 +3764,13 @@ File: dvips.info,  Node: Bitmap font encodings,  Next: PostScript typesetting,  
 7.6.3 Bitmap font encodings
 ---------------------------
 
-To dvips, bitmapped fonts do not have any linguistic metadata; they
+To dvips, bitmapped fonts do not have any notion of linguistics; they
 are simply a vector of glyphs.  By comparison, PostScript fonts are
 required to contain an encoding vector that at the least provides glyph
 names; these names can permit PostScript and PDF viewers to extract
 legible text from Postscript and PDF output.
 
-   Unlike previous versions, Dvips versions 2019 and later add glyph
+   Unlike previous versions, dvips versions 2019 and later add glyph
 naming information to Type 3 bitmapped fonts (if they can locate such
 information) as an Encoding vector.  This provides some support for
 search, for copy and paste, and even some limited support for
@@ -4733,83 +4734,83 @@ Index
 
 
 Tag Table:
-Node: Top521
-Node: Why Dvips1267
-Node: Installation4284
-Node: config.ps installation5305
-Node: PostScript font installation7929
-Node: Ghostscript installation8849
-Node: Diagnosing problems9786
-Node: Debug options10881
-Node: No output11907
-Node: Small or inverted13375
-Node: Printer errors14094
-Node: Long documents fail15426
-Node: Including graphics fails15767
-Node: Invoking Dvips17005
-Node: Basic usage17596
-Node: Command-line options18624
-Node: Option summary19073
-Node: Option details21324
-Node: Environment variables41362
-Node: Config files44321
-Node: Configuration file searching45004
-Node: Configuration file commands48248
-Node: Paper size and landscape56140
-Node: `papersize' special57767
-Node: Config file paper sizes59476
-Node: Paper trays63633
-Node: Interaction with PostScript64967
-Node: PostScript figures65620
-Node: Bounding box66346
-Node: \includegraphics69717
-Node: EPSF macros72008
-Node: EPSF scaling73978
-Node: EPSF clipping76548
-Node: psfile special77190
-Node: Dynamic creation of graphics79583
-Node: Fonts in figures80901
-Node: Header files82561
-Node: Including headers from TeX83767
-Node: Including headers from the command line85801
-Node: Headers and memory usage86901
-Node: Literal PS88112
-Node: " special88694
-Node: ps special89435
-Node: Literal headers90932
-Node: PostScript hooks91641
-Node: Literal examples93737
-Node: Hypertext95190
-Node: Hypertext caveats96429
-Node: Hypertext specials100826
-Node: PostScript fonts103460
-Node: Font concepts104576
-Node: Metric files105805
-Node: Glyph files108631
-Node: Virtual fonts110987
-Node: Encodings112877
-Node: PostScript typesetting115279
-Node: Making a font available118373
-Node: Invoking afm2tfm123403
-Node: Changing font encodings124420
-Node: Changing TeX encodings125210
-Node: Changing PostScript encodings126310
-Node: Changing both encodings127654
-Node: Reencoding with Afm2tfm128327
-Node: Encoding file format131431
-Node: Special font effects135634
-Node: Afm2tfm options137897
-Node: psfonts.map141420
-Node: Color146152
-Node: Color macro files147196
-Node: User-definable colors150394
-Node: Color subtleties151669
-Node: Ted Turner153320
-Node: Color device configuration154545
-Node: Color support details156987
-Node: Color specifications157365
-Node: Color specials158768
-Node: Bitmap font encodings160897
-Node: Index163319
+Node: Top563
+Node: Why Dvips1309
+Node: Installation4326
+Node: config.ps installation5347
+Node: PostScript font installation7971
+Node: Ghostscript installation8891
+Node: Diagnosing problems9828
+Node: Debug options10923
+Node: No output11949
+Node: Small or inverted13417
+Node: Printer errors14136
+Node: Long documents fail15468
+Node: Including graphics fails15809
+Node: Invoking Dvips17047
+Node: Basic usage17638
+Node: Command-line options18666
+Node: Option summary19115
+Node: Option details21366
+Node: Environment variables41404
+Node: Config files44363
+Node: Configuration file searching45046
+Node: Configuration file commands48290
+Node: Paper size and landscape56182
+Node: `papersize' special57809
+Node: Config file paper sizes59518
+Node: Paper trays63675
+Node: Interaction with PostScript65009
+Node: PostScript figures65662
+Node: Bounding box66388
+Node: \includegraphics69759
+Node: EPSF macros72050
+Node: EPSF scaling74020
+Node: EPSF clipping76590
+Node: psfile special77232
+Node: Dynamic creation of graphics79625
+Node: Fonts in figures80943
+Node: Header files82603
+Node: Including headers from TeX83809
+Node: Including headers from the command line85843
+Node: Headers and memory usage86943
+Node: Literal PS88154
+Node: " special88736
+Node: ps special89477
+Node: Literal headers90974
+Node: PostScript hooks91683
+Node: Literal examples93779
+Node: Hypertext95232
+Node: Hypertext caveats96471
+Node: Hypertext specials100868
+Node: PostScript fonts103502
+Node: Font concepts104618
+Node: Metric files105847
+Node: Glyph files108673
+Node: Virtual fonts111029
+Node: Encodings112919
+Node: PostScript typesetting115321
+Node: Making a font available118415
+Node: Invoking afm2tfm123445
+Node: Changing font encodings124462
+Node: Changing TeX encodings125252
+Node: Changing PostScript encodings126352
+Node: Changing both encodings127696
+Node: Reencoding with Afm2tfm128369
+Node: Encoding file format131473
+Node: Special font effects135676
+Node: Afm2tfm options137939
+Node: psfonts.map141462
+Node: Color146194
+Node: Color macro files147238
+Node: User-definable colors150436
+Node: Color subtleties151711
+Node: Ted Turner153362
+Node: Color device configuration154587
+Node: Color support details157029
+Node: Color specifications157407
+Node: Color specials158810
+Node: Bitmap font encodings160939
+Node: Index163361
 
 End Tag Table
