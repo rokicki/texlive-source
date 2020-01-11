@@ -1,3 +1,66 @@
+2019-11-14  Akira Kakuto  <kakuto@w32tex.org>
+
+	* mt19937ar.c: Add to support common font names in all
+	platforms when SOURCE_DATE_EPOCH is suitably set. A pseudo
+	random number generating program coded by Takuji Nishimura and
+	Makoto Matsumoto.
+	* README: Add a subject "11. Random number generating function".
+	* mem.h: Add "#define srand(x) init_genrand((x))", etc. because
+	it is the only common header file for dpxcrypt.c, pdfencrypt.c,
+	and pdffont.c, which use rand().
+	* Makefile.am: Add mt19937ar.c.
+	* configure.ac: Version 20191114.
+
+2019-11-13  Akira Kakuto  <kakuto@w32tex.org>
+
+	* spc_dvips.c: Add -dDELAYSAFER in GS_CALCULATOR because
+	SAFER mode became the default in the gs-9.50.
+
+2019-09-08  Akira Kakuto  <kakuto@w32tex.org>
+
+	* dvi.c: Show appropriate message if unsupported pfa
+	is used. Reported in
+	https://tug.org/pipermail/dvipdfmx/2019-September/000031.html.
+
+2019-08-24  Shunsaku Hirata  <shunsaku.hirata74@gmail.com>
+
+	* dpxutil.c: Timezone offset is incremented by 1 hour if
+	tm_isdst > 0, as suggested in
+	https://tug.org/pipermail/dvipdfmx/2019-July/000017.html
+	* pdfcolor.c: Always output color change instruction when color
+	push/pop is invoked. Fix for the issue reported in
+	https://tug.org/pipermail/dvipdfmx/2019-August/000029.html
+	* configure.ac: Version 20190824.
+
+2019-08-17  Shunsaku Hirata  <shunsaku.hirata74@gmail.com>
+
+	* pdfdoc.c, spc_pdfm.c: Workaround for some problems reported
+	in https://tug.org/pipermail/dvipdfmx/2019-August/000021.html.
+	Try to deref page resource dictionary when adding page resources.
+	Allow direct objects for page resources.
+	* configure.ac: Version 20190817.
+
+2019-08-05  Shunsaku Hirata  <shunsaku.hirata74@gmail.com>
+
+	* pdfobj.c: Ignore zlib error while uncompressing data.
+	Z_DATA_ERROR is ignored when avail_in is 0.
+	Accepting some incorrectly written compressed data.
+	Reported by Jens Adam:
+	https://tug.org/pipermail/tex-live/2019-August/043983.html
+	* dvipdfmx.c: Fix a bug that 'm' option was broken.
+	This option must be processed before dvi_init().
+	Bug reported to TUG mailing list:
+	https://tug.org/pipermail/dvipdfmx/2019-July/000019.html
+	* configure.ac: Version 20190805.
+
+2019-08-03  Shunsaku Hirata  <shunsaku.hirata74@gmail.com>
+
+	* tt_gsub.c: Fix a bug that OTL coverage data were not read and
+	were initialized to wrong values when LigatureSetCount was 0.
+	Similar issue is found also in alternate substitution.
+	Reported by Jens Adam:
+	https://tug.org/pipermail/tex-live/2019-August/043983.html
+
 2019-06-30  Shunsaku Hirata  <shunsaku.hirata74@gmail.com>
 
 	* pdfdev.c: Fix a bug that fake-bold is not handled properly
