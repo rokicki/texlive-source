@@ -72,6 +72,7 @@ struct bmenc {
    const char **enc ;   // the encoding itself
    int downloaded_seq ; // -1: not downloaded; else, sequence number
    struct bmenc *next ; // next encoding in linear linked list
+   unsigned char existsbm[32] ; // a bitmap of characters with names
 } ;
 static struct bmenc *bmlist ;
 /*
@@ -259,6 +260,116 @@ static int eqencoding(const char **a, const char **b) {
    return 1 ;
 }
 /*
+ *   Try to parse an encoding to identify which names exist and which don't.
+ *   If we can't trivially parse it we just mark all names as existing.
+ *   We properly parse the following types of tokens:
+ *   [ (at start) ] (at end) : ignored
+ *   /name
+ *   digits { /.notdef } repeat
+ *
+ *   In all cases the spaces and linebreaks are arbitrary.
+ *
+ *   The state machine works as follows:
+ *
+ *   'B':  begin; expect [
+ *   'N':  between entries; expect name or digits or ]
+ *   'E':  finished (saw ]); expect nothing more
+ *   '#':  just saw digits; expect only {
+ *   '{':  just saw {; expect only name and should be /.notdef
+ *   'L':  just saw a name inside {}; expect only }
+ *   '}':  just saw }; expect only repeat
+ */
+static int trytoparseenc(struct bmenc *bme) {
+   int i ;
+   const char **enc = bme->enc ;
+   const char *p ;
+   int seenchars = 0 ;
+   int num = 0 ;
+   char state = 'B' ;
+   for (i=0; i<32; i++)
+      bme->existsbm[i] = 255 ;
+   while (*enc != 0) {
+      p = *enc ;
+      enc++ ;
+      while (*p && *p <= ' ')
+         p++ ;
+      while (*p != 0) {
+// printf("State is %c next part %s\n", state, p) ;
+         switch (state) {
+case 'B':   if (*p != '[') return 0 ;
+            p++ ;
+            state = 'N' ;
+            break ;
+case 'N':   if (*p == ']') {
+               p++ ;
+               state = 'E' ;
+            } else if (*p == '/') {
+               if (seenchars >= 256)
+                  return 0 ;
+               if (strncmp(p, "/.notdef", 8) == 0 &&
+                   (p[8] <= ' ' || index("{}[]<>()%/", p[8]) == 0))
+                  bme->existsbm[seenchars>>3] &= ~(1<<(seenchars & 7)) ;
+               // see PostScript language reference manual syntax for this
+               p++ ;
+               while (*p > ' ' && index("{}[]<>()%/", *p) == 0)
+                  p++ ;
+               seenchars++ ;
+            } else if ('0' <= *p && *p <= '9') {
+               num = 0 ;
+               while (num < 256 && '0' <= *p && *p <= '9')
+                  num = 10 * num + *p++ - '0' ;
+               state = '#' ;
+            } else
+               return 0 ;
+            break ;
+case '#':   if (*p != '{') return 0 ;
+            p++ ;
+            state = '{' ;
+            break ;
+case '{':   if (strncmp(p, "/.notdef", 8) != 0)
+               return 0 ;
+            p += 8 ;
+            if (*p > ' ' && index("{}[]<>()%/", *p) == 0)
+               return 0 ;
+            while (num > 0) {
+               if (seenchars >= 256)
+                  return 0 ;
+               bme->existsbm[seenchars>>3] &= ~(1<<(seenchars & 7)) ;
+               seenchars++ ;
+               num-- ;
+            }
+            state = 'L' ;
+            break ;
+case 'L':   if (*p != '}')
+               return 0 ;
+            p++ ;
+            state = '}' ;
+            break ;
+case '}':   if (strncmp(p, "repeat", 6) != 0)
+               return 0 ;
+            p += 6 ;
+            state = 'N' ;
+            break ;
+default:
+            error("! internal error in encoding vector parse") ;
+         }
+         while (*p && *p <= ' ')
+            p++ ;
+      }
+   }
+   if (seenchars != 256)
+      return 0 ;
+   return 1 ;
+}
+static void parseenc(struct bmenc *bme) {
+   int i ;
+   if (trytoparseenc(bme) == 0) {
+      printf("Failed to parse it.\n") ;
+      for (i=0; i<32; i++)
+         bme->existsbm[i] = 255 ;
+   }
+}
+/*
  *   Add an encoding to our list of deduplicated encodings.
  */
 struct bmenc *addbmenc(const char **enc) {
@@ -266,6 +377,7 @@ struct bmenc *addbmenc(const char **enc) {
    r->downloaded_seq = -1 ;
    r->enc = enc ;
    r->next = bmlist ;
+   parseenc(r) ;
    bmlist = r ;
    return r ;
 }
@@ -361,13 +473,31 @@ static void downloadenc(struct bmenc *enc) {
  *   used to do instead (don't give it an encoding or resize or
  *   rescale).
  */
-static int getencoding_seq(const char *fontname) ;
-int downloadbmencoding(const char *name, double scale,
-                       int llx, int lly, int urx, int ury) {
+static struct bmenc *getencoding_seq(const char *fontname) ;
+int downloadbmencoding(const char *name, double scale, fontdesctype *curfnt) {
    int slop;
-   int seq = getencoding_seq(name) ;
-   if (seq < 0)
+   int i ;
+   int llx = curfnt->llx ;
+   int lly = curfnt->lly ;
+   int urx = curfnt->urx ;
+   int ury = curfnt->ury ;
+   struct bmenc *bme = getencoding_seq(name) ;
+   if (bme == 0)
       return -1 ;
+   int seq = bme->downloaded_seq ;
+/*
+ *   Check that every character defined in the font has a name in the
+ *   PostScript vector, and complain if this is not the case.
+ */
+   for (int i=0; i<256 && i<curfnt->maxchars; i++) {
+      if ((curfnt->chardesc[i].flags2 & EXISTS) &&
+                                !(bme->existsbm[i>>3] & (i & 7))) {
+         fprintf(stderr,
+"Can't use PostScript encoding vector for font %s; character %d has no name.\n",
+         name, i) ;
+         return -1 ;
+      }
+   }
    cmdout("IEn") ;
    cmdout("S") ;
    psnameout("/IEn") ;
@@ -443,14 +573,14 @@ static void bmenc_warn(const char *fontname, const char *msg) {
  *   -1; this font may not work as well for copy/paste and text search.
  */
 static int tried_all = 0 ; // have we tried to load dvips-all.enc
-static int getencoding_seq(const char *fontname) {
+static struct bmenc *getencoding_seq(const char *fontname) {
    struct bmenc *enc = 0 ;
    struct bmfontenc *p = bmfontenclist ;
    for (; p!=0; p=p->next)
       if (strcmp(fontname, p->fontname) == 0) {
          enc = p->enc ;
          if (enc == 0) // remember failures
-            return -1 ;
+            return 0 ;
          break ;
       }
    // not in list; try to load it from a file
@@ -480,10 +610,10 @@ static int getencoding_seq(const char *fontname) {
          bmenc_warn(fontname, "no encoding found") ;
          warned_about_missing_encoding = 2 ;
       }
-      return -1 ; // don't download an encoding
+      return 0 ; // don't download an encoding
    }
    downloadenc(enc) ;
-   return enc->downloaded_seq ;
+   return enc ;
 }
 #ifdef STANDALONE
 /*
@@ -505,7 +635,7 @@ void newline() {
    idok = 1 ;
    pos = 0 ;
 }
-void doubleout(float f) {
+void doubleout(double f) {
    printf("%g", f) ;
    pos += 8 ;
 }
@@ -549,9 +679,10 @@ void specialout(char c) {
 int main(int argc, char *argv[]) {
    bmenc_startsection() ;
    for (int i=1; i<argc; i++) {
-      int r = getencoding_seq(argv[i]) ;
+      struct bmenc *r = getencoding_seq(argv[i]) ;
+      int seq = r ? r->downloaded_seq : -1 ;
       printf("\n") ;
-      printf("Result for %s is %d\n", argv[i], r) ;
+      printf("Result for %s is %d\n", argv[i], seq) ;
    }
 }
 #endif
