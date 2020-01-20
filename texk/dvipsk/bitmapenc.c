@@ -173,7 +173,7 @@ static void add_encline(const char *encline) {
  *   for later lookup, and always return 0.  Otherwise we just expect a
  *   single encoding and we store that away.
  */
-static const char **parseencoding(FILE *f, int use_all) {
+static const char **parseencodingfile(FILE *f, int use_all) {
    char encbuf[MAX_LINE_LENGTH+1] ;
    size_t i ;
    for (i=0; i<sizeof(encbuf); i++)
@@ -294,7 +294,6 @@ static int trytoparseenc(struct bmenc *bme) {
       while (*p && *p <= ' ')
          p++ ;
       while (*p != 0) {
-// printf("State is %c next part %s\n", state, p) ;
          switch (state) {
 case 'B':   if (*p != '[') return 0 ;
             p++ ;
@@ -307,8 +306,9 @@ case 'N':   if (*p == ']') {
                if (seenchars >= 256)
                   return 0 ;
                if (strncmp(p, "/.notdef", 8) == 0 &&
-                   (p[8] <= ' ' || index("{}[]<>()%/", p[8]) == 0))
+                   (p[8] <= ' ' || index("{}[]<>()%/", p[8]) == 0)) {
                   bme->existsbm[seenchars>>3] &= ~(1<<(seenchars & 7)) ;
+               }
                // see PostScript language reference manual syntax for this
                p++ ;
                while (*p > ' ' && index("{}[]<>()%/", *p) == 0)
@@ -401,7 +401,7 @@ static struct bmenc *deduplicateencoding(const char **enc) {
 static const char **bitmap_enc_load(const char *fontname, int use_all) {
    FILE *f = bitmap_enc_search(use_all ? "all" : fontname) ;
    if (f != 0) {
-      const char **r = parseencoding(f, use_all) ;
+      const char **r = parseencodingfile(f, use_all) ;
       fclose(f) ;
       return r ;
    }
@@ -491,7 +491,7 @@ int downloadbmencoding(const char *name, double scale, fontdesctype *curfnt) {
  */
    for (int i=0; i<256 && i<curfnt->maxchars; i++) {
       if ((curfnt->chardesc[i].flags2 & EXISTS) &&
-                                !(bme->existsbm[i>>3] & (i & 7))) {
+                                !(bme->existsbm[i>>3] & (1 << (i & 7)))) {
          fprintf(stderr,
 "Can't use PostScript encoding vector for font %s; character %d has no name.\n",
          name, i) ;
@@ -603,6 +603,7 @@ static struct bmenc *getencoding_seq(const char *fontname) {
       p->fontname = strdup(fontname) ;
       p->enc = enc ;
       p->next = bmfontenclist ;
+//    parseenc(enc) ;
       bmfontenclist = p ;
    }
    if (enc == 0) {
