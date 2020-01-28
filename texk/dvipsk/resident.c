@@ -461,15 +461,18 @@ case 'a' :
          break;
 case 'b':
          if (strncmp(was_inline, "bitmapfontenc", 13) == 0) {
-            if (strncmp(was_inline+13, "off", 3) == 0) {
+            char *p = was_inline + 13 ;
+            while (*p && *p <= ' ')
+               p++ ;
+            if (strncmp(p, "off", 3) == 0) {
                bitmapencopt(0) ; // disable bitmap font enc feature
-            } else if (strncmp(was_inline+13, "silent", 6) == 0) {
+            } else if (strncmp(p, "on", 2) == 0) {
                bitmapencopt(1) ; // try to include bitmap font encs
-            } else if (strncmp(was_inline+13, "strict", 6) == 0) {
+            } else if (strncmp(p, "strict", 6) == 0) {
                bitmapencopt(2) ; // issue warnings for missing encs
             } else {
                error(
-   "! bitmapfontenc config file option only supports suffixes off, silent, and strict") ;
+   "! bitmapfontenc config file option only supports on, off, and strict") ;
             }
             break ;
          }

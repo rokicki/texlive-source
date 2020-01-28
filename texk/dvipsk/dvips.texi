@@ -592,19 +592,12 @@ do color separations or other neat tricks.
 Print only the even pages.  This option uses @TeX{} page numbers, not
 physical page numbers.
 
-@item -bitmapfontencoff
-@opindex -bitmapfontencoff
-Disable searching for and downloading encodings for bitmapped fonts.
-
-@item -bitmapfontencsilent
-@opindex -bitmapfontencsilent
-Try to find and download encodings for bitmapped fonts, but do not
-complain if such encodings cannot be found.
-
-@item -bitmapfontencstrict
-@opindex -bitmapfontencstrict
-Download encodings for bitmapped fonts; if none can be found, display
-a warning.
+@item -bitmapfontenc @var{option}
+@opindex -bitmapfontenc @var{option}
+@cindex bitmap font encoding
+Turns bitmap font encoding to @samp{off}, @samp{on} (with no warnings
+for missing bitmap font encodings), or @samp{strict} (with warnings
+for missing bitmap font encodings.)
 
 @item -c @var{num}
 @opindex -c @var{num}
@@ -1352,19 +1345,11 @@ Memory conservation.  Same as @samp{-a}, @pxref{Option details}.
 @opindex b @r{config command (#copies)}
 Multiple copies.  Same as @samp{-b}, @pxref{Option details}.
 
-@item bitmapfontencoff
-@opindex bitmapfontencoff @r{config command (bitmap font encoding}
-Disable searching for and downloading encodings for bitmapped fonts.
-
-@item -itmapfontencsilent
-@opindex bitmapfontencsilent @r{config command (bitmap font encoding}
-Try to find and download encodings for bitmapped fonts, but do not
-complain if such encodings cannot be found.
-
-@item bitmapfontencstrict
-@opindex bitmapfontencstrict @r{config command (bitmap font encoding}
-Download encodings for bitmapped fonts; if none can be found, display
-a warning.
+@item bitmapfontenc @var{option}
+@opindex bitmapfontenc @r{config command (bitmap font encoding)}
+Turns bitmap font encoding to @samp{off}, @samp{on} (with no warnings
+for missing bitmap font encodings), or @samp{strict} (with warnings
+for missing bitmap font encodings.)
 
 @item c @var{filename}
 @opindex c @r{config command (include another config file)}

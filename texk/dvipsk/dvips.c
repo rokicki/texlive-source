@@ -286,7 +286,7 @@ static const char *helparr[] = {
 "Options:",
 "-a*  Conserve memory, not time       -A   Print only odd (TeX) pages",
 "-b # Page copies, for posters e.g.   -B   Print only even (TeX) pages",
-"-bitmapfontenc[off,silent,strict] control bitmap font encoding",
+"-bitmapfontenc [on,off,strict] control bitmap font encoding",
 "-c # Uncollated copies               -C # Collated copies",
 "-d # Debugging                       -D # Resolution",
 "-e # Maxdrift value                  -E*  Try to create EPSF",
@@ -754,16 +754,17 @@ case 'a':
                dopprescan = (*p != '0');
                break;
 case 'b':
-               if (strncmp(p, "itmapfontenc", 12) == 0) {
-                  if (strcmp(p+12, "off") == 0) {
+               if (strcmp(p, "itmapfontenc") == 0) {
+                  p = argv[++i] ;
+                  if (strcmp(p, "off") == 0) {
                      bitmapencopt(0) ; // disable bitmap font enc feature
-                  } else if (strcmp(p+12, "silent") == 0) {
+                  } else if (strcmp(p, "on") == 0) {
                      bitmapencopt(1) ; // try to include bitmap font encs
-                  } else if (strcmp(p+12, "strict") == 0) {
+                  } else if (strcmp(p, "strict") == 0) {
                      bitmapencopt(2) ; // issue warnings for missing encs
                   } else {
                      error(
-   "! -bitmapfontenc option only supports suffixes off, silent, and strict") ;
+               "! -bitmapfontenc option only supports off, on, and strict") ;
                   }
                   break ;
                }
