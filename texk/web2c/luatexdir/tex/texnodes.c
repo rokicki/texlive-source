@@ -2220,7 +2220,7 @@ static void flush_node_wrapup_core(halfword p)
             case 'd':
                 break;
             case 'l':
-                free_user_lua(user_node_value(p));
+                free_user_lua(p);
                 break;
             case 'n':
                 flush_node_list(user_node_value(p));
@@ -2499,6 +2499,7 @@ static void check_node_wrapup_core(halfword p)
                     break;
                 case 's':
                 case 'd':
+                case 'l':
                     break;
                 default:
                     confusion("unknown user node type");
@@ -4474,7 +4475,16 @@ halfword new_char(int f, int c)
     \.{\\rightghost}, respectively. They are going to be removed by
     |new_ligkern|, at the end of which they are no longer needed.
 
-    Here are a few handy helpers used by the list output routines.
+    Here are a few handy helpers used by the list output routines. The yoffset
+    has some history but we now give some control over its treatment:
+
+    0: what we had before
+    1: compensate height and depth
+    2: compensate height and depth, take max
+    3: we keep height and depth
+
+    The modes are controlled by a variable because we need to retain downward
+    compatibility.
 
 */
 
@@ -4486,20 +4496,24 @@ scaled glyph_width(halfword p)
 
 scaled glyph_height(halfword p)
 {
-    scaled w = char_height(font(p), character(p)) + y_displace(p);
-    if (w < 0)
-        w = 0;
-    return w;
+    scaled h = char_height(font(p), character(p));
+    scaled y = y_displace(p);
+    if ((glyph_dimensions_par == 0) || (glyph_dimensions_par == 1) || (glyph_dimensions_par == 2 && y > 0))
+        h += y;
+    if (h < 0)
+        h = 0;
+    return h;
 }
 
-scaled glyph_depth(halfword p)
+scaled glyph_depth(halfword p) /* not used */
 {
-    scaled w = char_depth(font(p), character(p));
-    if (y_displace(p) > 0)
-        w = w - y_displace(p);
-    if (w < 0)
-        w = 0;
-    return w;
+    scaled d = char_depth(font(p), character(p));
+    scaled y = y_displace(p);
+    if ((glyph_dimensions_par == 0 && y > 0) || (glyph_dimensions_par == 1) || (glyph_dimensions_par == 2 && y < 0))
+        d -= y;
+    if (d < 0)
+        d = 0;
+    return d;
 }
 
 /*tex

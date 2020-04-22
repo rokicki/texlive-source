@@ -1,2 +1,2 @@
-#define VERSION "20190223"
+#define VERSION "20200412"
 #define BUG_ADDRESS "issue@texjp.org"

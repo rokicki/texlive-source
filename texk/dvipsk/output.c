@@ -1472,7 +1472,11 @@ initprinter(sectiontype *sect)
  *   If we encode Type 3 fonts with an encoding vector, this can cause
  *   Distiller's autoorientation to get confused.  We remedy this by
  *   emitting underdocumented ViewingOrientation comments right after
- *   EndComments.   --tgr, February 2020
+ *   EndComments.  Known defect: if a user "flips" the landscape to be
+ *   180 degrees using one of the \special{} commands available, the
+ *   document will be rendered in the viewer upside down.  (But only
+ *   with bitmap font encoding enabled and bitmapped fonts actually used.)
+ *   --tgr, 29 February 2020.
  */
       if (encodetype3 && bitmapfontseen) {
          fprintf(bitfile, "%%%%BeginDefaults\n") ;

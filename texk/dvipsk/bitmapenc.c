@@ -306,12 +306,12 @@ case 'N':   if (*p == ']') {
                if (seenchars >= 256)
                   return 0 ;
                if (strncmp(p, "/.notdef", 8) == 0 &&
-                   (p[8] <= ' ' || index("{}[]<>()%/", p[8]) == 0)) {
+                   (p[8] <= ' ' || strchr("{}[]<>()%/", p[8]) == 0)) {
                   bme->existsbm[seenchars>>3] &= ~(1<<(seenchars & 7)) ;
                }
                // see PostScript language reference manual syntax for this
                p++ ;
-               while (*p > ' ' && index("{}[]<>()%/", *p) == 0)
+               while (*p > ' ' && strchr("{}[]<>()%/", *p) == 0)
                   p++ ;
                seenchars++ ;
             } else if ('0' <= *p && *p <= '9') {
@@ -329,7 +329,7 @@ case '#':   if (*p != '{') return 0 ;
 case '{':   if (strncmp(p, "/.notdef", 8) != 0)
                return 0 ;
             p += 8 ;
-            if (*p > ' ' && index("{}[]<>()%/", *p) == 0)
+            if (*p > ' ' && strchr("{}[]<>()%/", *p) == 0)
                return 0 ;
             while (num > 0) {
                if (seenchars >= 256)
@@ -477,6 +477,7 @@ static struct bmenc *getencoding_seq(const char *fontname) ;
 int downloadbmencoding(const char *name, double scale, fontdesctype *curfnt) {
    int slop;
    int i ;
+   int seq ;
    int llx = curfnt->llx ;
    int lly = curfnt->lly ;
    int urx = curfnt->urx ;
@@ -484,12 +485,12 @@ int downloadbmencoding(const char *name, double scale, fontdesctype *curfnt) {
    struct bmenc *bme = getencoding_seq(name) ;
    if (bme == 0)
       return -1 ;
-   int seq = bme->downloaded_seq ;
+   seq = bme->downloaded_seq ;
 /*
  *   Check that every character defined in the font has a name in the
  *   PostScript vector, and complain if this is not the case.
  */
-   for (int i=0; i<256 && i<curfnt->maxchars; i++) {
+   for (i=0; i<256 && i<curfnt->maxchars; i++) {
       if ((curfnt->chardesc[i].flags2 & EXISTS) &&
                                 !(bme->existsbm[i>>3] & (1 << (i & 7)))) {
          fprintf(stderr,

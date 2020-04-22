@@ -560,7 +560,7 @@ EXTRA_DIST = COPYRIGHT COPYRIGHT.jis Changes.txt README.txt \
 	tests/min10.tfm tests/min10.vf tests/rml.tfm tests/rmlv.tfm \
 	tests/tmin10.tfm tests/tmin10.vf tests/testnewu.tfm \
 	tests/testnewu.vf tests/gkhugeok.tfm tests/gkhugeok.vf \
-	tests/skipjfmp.tfm tests/skipjfmp.vf
+	tests/skipjfmp.tfm tests/skipjfmp.vf tests/skipjfmp_omit.vf
 dist_check_SCRIPTS = makejvf.test
 TESTS = makejvf.test
 dist_man1_MANS = makejvf.1
