@@ -301,7 +301,7 @@ definitions are called flag bytes, and various fields within the byte indicate
 various things about how the character definition is encoded.  Command bytes
 have zero or more parameters, and can never appear within a character
 definition or between parameters of another command, where they would be
-interpeted as data.
+interpreted as data.
 
 A \.{PK} file consists of a preamble, followed by a sequence of one or more
 character definitions, followed by a postamble.  The preamble command must
@@ -342,7 +342,7 @@ of a keyword followed by possible parameters relevant to that keyword.
 length exceeds~255.
 
 \yskip\hang\\{pk\_xxx4} 243 |k[4]| |x[k]|.  Like |pk_xxx1|, but |k| can be
-ridiculously large; |k| musn't be negative.
+ridiculously large; |k| mustn't be negative.
 
 \yskip\hang|pk_yyy| 244 |y[4]|.  This command is undefined in general; it
 functions as a five-byte \\{no\_op} unless special \.{PK} reading programs

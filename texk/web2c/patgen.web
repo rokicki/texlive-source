@@ -1070,7 +1070,7 @@ as \PASCAL\ string (i.e., as \&{packed} \&{array} |[1..any]| \&{of}
 @!buf_ptr: 0..max_buf_len; {index into |buf|}
 
 @ When an error is caused by bad input data we say |bad_input(#)| in
-order to disply the contents of the |buf| array before terminating with
+order to display the contents of the |buf| array before terminating with
 an error message.
 
 @d print_buf== {print contents of |buf| array}
@@ -1177,7 +1177,7 @@ start with two equal characters (e.g., are blank) and are ignored.
 Other lines contain the external representation of the lower case
 version and an arbitrary number of `upper case versions' of a letter
 preceded and separated by a delimiter and followed by two consecutive
-delimiters; the delimiter may be any character not occuring in either
+delimiters; the delimiter may be any character not occurring in either
 version.
 
 @<Set up repres...@>=
