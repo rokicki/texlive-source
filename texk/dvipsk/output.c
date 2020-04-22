@@ -1468,6 +1468,21 @@ initprinter(sectiontype *sect)
       tell_needed_fonts();
       paperspec(finpapsiz->specdat, 1);
       fprintf(bitfile, "%%%%EndComments\n");
+/*
+ *   If we encode Type 3 fonts with an encoding vector, this can cause
+ *   Distiller's autoorientation to get confused.  We remedy this by
+ *   emitting underdocumented ViewingOrientation comments right after
+ *   EndComments.   --tgr, February 2020
+ */
+      if (encodetype3 && bitmapfontseen) {
+         fprintf(bitfile, "%%%%BeginDefaults\n") ;
+         if (landscape) {
+            fprintf(bitfile, "%%%%ViewingOrientation: 0 -1 1 0\n") ;
+         } else {
+            fprintf(bitfile, "%%%%ViewingOrientation: 1 0 0 1\n") ;
+         }
+         fprintf(bitfile, "%%%%EndDefaults\n") ;
+      }
    }
    {
       int i, len;
